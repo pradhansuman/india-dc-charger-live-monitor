@@ -2,60 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>India DC Charger Live Monitor</title>
-<meta name="description" content="Live map of DC fast charging stations across India. Filter by state, operator or status — everything selected shows on the map.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>India EV Charger Map</title>
+<meta name="description" content="Every EV charging station in India — AC and DC, any type — on one map.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <span class="brand-icon" aria-hidden="true">⚡</span>
-    <h1>India DC Chargers</h1>
-  </div>
-  <div class="status-cluster">
-    <span id="mode-badge" class="badge badge-snapshot" role="status">SNAPSHOT</span>
-    <span class="clock"><span class="live-dot" id="live-dot" aria-hidden="true"></span><span id="last-updated">—</span></span>
-  </div>
-</header>
-
-<section class="controls" aria-label="Filters">
-  <div class="search-wrap">
-    <label class="visually-hidden" for="search">Search stations</label>
-    <input id="search" type="search" placeholder="Search station, operator, city…" autocomplete="off">
-  </div>
-  <label class="visually-hidden" for="state-filter">Filter by state</label>
-  <select id="state-filter"><option value="">All states</option></select>
-  <label class="visually-hidden" for="operator-filter">Filter by operator</label>
-  <select id="operator-filter"><option value="">All operators</option></select>
-  <div class="segmented" role="group" aria-label="Filter by status">
-    <button data-status="" class="seg active" aria-pressed="true">All</button>
-    <button data-status="online" class="seg" aria-pressed="false">Online</button>
-    <button data-status="maintenance" class="seg" aria-pressed="false">Maintenance</button>
-    <button data-status="offline" class="seg" aria-pressed="false">Offline</button>
-  </div>
-  <button id="clear-filters" class="ghost-btn" type="button">Clear</button>
-</section>
-
-<main class="map-shell">
-  <div id="map" role="application" aria-label="Map of DC charging stations in India"></div>
-  <div id="result-count" class="map-overlay count" aria-live="polite"></div>
-  <div class="map-overlay legend" aria-hidden="true">
-    <span><i class="legend-dot online"></i>Online</span>
-    <span><i class="legend-dot maint"></i>Maintenance</span>
-    <span><i class="legend-dot offline"></i>Offline</span>
-  </div>
-  <p class="map-note" id="map-note">Map tiles need an internet connection (OpenStreetMap).</p>
-</main>
-
-<footer class="footer">
-  <span id="footer-source"></span>
-  <span id="footer-refresh"></span>
-</footer>
-
+<div id="map" role="application" aria-label="Map of all EV charging stations in India"></div>
 <div id="toast" class="toast" role="alert" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>

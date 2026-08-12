@@ -1,11 +1,9 @@
-# India DC Charger Live Monitor
+# India EV Charger Map
 
-View-only live monitor of DC fast & ultra-fast charging stations across India:
-interactive map, station list, status pills, KPIs, filters and auto-refresh.
+Every EV charging station in India — **AC and DC, any connector type** — on one full-screen map.
+No filters, no panels, no extra UI. Just the map.
 
 ## Run it locally
-
-No build step, no dependencies to install — pure static files.
 
 ```bash
 # from this folder
@@ -13,18 +11,17 @@ python3 -m http.server 8080
 # open http://localhost:8080
 ```
 
-Or just double-click `index.html` — it works from `file://` too (the dataset is
-bundled in `data/stations.js`).
+Or double-click `index.html` (the dataset is bundled in `data/stations.js`, so `file://` works).
 
 ## How it works
 
 | Piece | File | Role |
 |---|---|---|
-| Page | `index.html` | Header + filter bar + full-screen map (nothing else) |
-| Styling | `styles.css` | Dark theme, responsive, map overlays (count / legend / empty state) |
-| App logic | `app.js` | Filter logic, Leaflet map + clustering, popups, auto-refresh, feed fallback |
-| Data (bundled) | `data/stations.js` | 1,526 DC-capable stations from OpenChargeMap (India), normalized |
-| Feed plug point | `config.js` | `ocmApiKey` (OpenChargeMap, free) · `liveFeedUrl` (custom JSON feed) · refresh intervals |
+| Page | `index.html` | One full-screen map + a transient error toast. Nothing else |
+| Styling | `styles.css` | Map fills the viewport (100dvh), dark popups, theme-matched clusters |
+| App logic | `app.js` | Data loading, OCM transform (AC + DC), clustering, popups, auto-refresh |
+| Data (bundled) | `data/stations.js` | 1,948 stations (1,525 DC-capable + 423 AC-only) from OpenChargeMap |
+| Feed plug point | `config.js` | `ocmApiKey` (OpenChargeMap, free) · `liveFeedUrl` (custom JSON feed) |
 | Nginx config | `nginx.conf` | Function Compute static-host contract (listen 9000, root /code) |
 | Gap filler | `scripts/update-osm-gaps.js` | Re-checks under-mapped states via Overpass, merges any DC stations found |
 
@@ -33,88 +30,45 @@ bundled in `data/stations.js`).
 ```
 priority: liveFeedUrl  >  ocmApiKey  >  bundled snapshot
 
-liveFeedUrl set? ──yes──▶ fetch(feed) ──▶ normalize ──▶ render (LIVE FEED badge)
-     │ no                                                          │
-ocmApiKey set?  ──yes──▶ fetch OCM API (paginated, India) ──▶ keep DC (Level 3 / DC connector type) ──▶ render (OCM LIVE badge)
-     │ no / fetch failure (toast + snapshot fallback)              │
-     ▼                                                             ▼
-data/stations.js (window.DC_STATIONS) ────────▶ render (SNAPSHOT badge)
-        ▼
-filters (search / state / operator / status) → map markers + clusters
-        ▼
+liveFeedUrl set? ──yes──▶ fetch(feed) ──▶ normalize ──▶ map
+     │ no
+ocmApiKey set?  ──yes──▶ fetch OCM API (paginated, India) ──▶ keep valid India coords ──▶ map
+     │ no / fetch failure (toast + snapshot fallback)
+     ▼
+data/stations.js ────────▶ map
+     ▼
+status-colored dots → clusters at national zoom → individual dots at city level
+     ▼
 auto-refresh: OCM every ocmRefreshMs (15 min) · feeds every refreshMs (30s default)
 ```
 
-### Status mapping
-
-`operational` → Online (green) · `under_maintenance` → Maintenance (amber) ·
-everything else (`power_failure`, `communication_failure`, `temporarily_unavailable`,
-`permanently_closed`) → Offline (red).
+- **All stations shown, no filtering**: AC-only, DC fast, ultra-fast, CCS2/CHAdeMO/GBT/Bharat DC — everything
+  with valid India coordinates renders. Click a dot for a popup with operator, connectors and status.
+- Status colors: green = operational, amber = maintenance, red = other (planned/not operational).
+- Cluster colors match the dark theme; clusters split at city-level zoom (12+).
 
 ## How to change things
 
-- **Show OpenChargeMap data (free, recommended)** — get a free API key at
-  https://openchargemap.org (sign in → profile → "my apps" → Register An
-  Application), then set `ocmApiKey` in `config.js`. The page fetches every
-  India POI from the OCM API in the browser (CORS is open) on load and then
-  every `ocmRefreshMs` (default 15 min, rate-limit friendly), keeps only
-  DC-capable stations (Level 3 connections), and shows them with an
-  **OCM LIVE** badge. Community data: coverage is good but not guaranteed
-  complete, and "operational" comes from OCM's status field, not live
-  operator telemetry.
-- **Go live with a custom feed** — edit `config.js`: set `liveFeedUrl` to an
-  endpoint returning a JSON array of station objects (shape documented in that
-  file). Set `refreshMs` for poll frequency, `apiKey` if the feed needs one.
-  Priority when several are configured: `liveFeedUrl` > `ocmApiKey` > snapshot.
-- **Add/remove stations in snapshot** — edit `data/stations.js` (array items
-  follow the same shape).
-- **Colors** — CSS variables at the top of `styles.css` (`--online`,
-  `--maint`, `--offline`, `--accent`).
-- **Filter options / table columns** — in `app.js`: `populateFilters()` and the
-  `<th data-key>` rows in `index.html`.
-- **Refresh interval** — `config.js` (`ocmRefreshMs` for OCM,
-  `refreshMs` for custom feeds; also shown in the footer).
-- **Deploy** — zip this folder's *contents* (nginx.conf at zip root) for the
-  Function Compute nginx environment.
+- **Live refresh** — `config.js`: `ocmApiKey` (free key from openchargemap.org → profile → My apps) makes the
+  map pull fresh OpenChargeMap data every `ocmRefreshMs`; `liveFeedUrl` accepts any custom JSON feed.
+- **Data** — `data/stations.js` (regenerate from OCM with `scripts/update-osm-gaps.js` for OSM gaps).
+- **Colors** — CSS variables in `styles.css`; cluster colors in the `.marker-cluster-*` rules.
+- **Deploy** — zip this folder's *contents* (nginx.conf at zip root) for Function Compute nginx, or push to
+  GitHub and link it on Render (Static Site, empty build command, publish directory `.`).
 
 ## Coverage & quality
 
-- **Map-only UI**: everything the user picks in the filters renders as dots/clusters on one full-screen
-  map — no table, no KPI cards, no extra panels. Click a dot for station details (operator, connectors,
-  power, status).
-- Mobile-tuned: dynamic viewport height (100dvh) so the map survives URL-bar show/hide, Leaflet invalidateSize on resize/orientation (no gray tiles), 16px inputs to prevent iOS focus-zoom, safe-area insets for notched phones, single-row nowrap status buttons.
-- **Map clustering**: dense areas (e.g. Kerala, Karnataka) group into numbered clusters at low zoom
-  (Leaflet.markercluster, theme-matched colors) and split into individual dots at city level — click a
-  cluster to zoom in. Falls back to plain markers if the CDN is blocked.
-- **Clean state dropdown**: OpenChargeMap state strings are normalized (trim, case, typos like
-  "Karnatak"/"Lerala"/"Tamil Nasdu", abbreviations like GJ/MH/MP/RJ, districts like "Villupuram" →
-  Tamil Nadu) — the filter lists each state exactly once, both for the bundled snapshot and live
-  OCM fetches.
-- Loading state: initial render from snapshot is instant; live mode shows a toast while connecting.
-- Zero-result state: the count overlay shows "0 of N DC chargers" and the map simply clears — no blocking alert.
-- Error state: failed live fetch → toast + automatic fallback to snapshot data; map CDN blocked →
-  message with the filter bar still usable.
-- Interactive states: hover on filters, active/pressed on segmented buttons, focus rings on
-  inputs/buttons/selects (keyboard reachable).
+- Full-screen map on desktop and mobile: `100dvh` height, `invalidateSize()` on resize/orientation (no gray
+  tiles), 16px inputs-free (no inputs anymore), safe-area free.
+- Clustering keeps 1,948 markers usable at any zoom; popups on tap/click.
+- Transient error toast when a live fetch fails (auto-falls back to bundled data); map CDN blocked → message.
+- All content in English (the page is a map; strings appear only in popups/toast).
 
 ## Honest limitations
 
-OpenChargeMap is community-sourced: stations are submitted and edited by
-volunteers and businesses, so it is the largest open dataset but **not a
-complete registry of every DC charger in India**, and its "operational" flag
-is not live operator telemetry. A complete national real-time view would need
-operator partnerships (OCPI/OCPP integrations) or a government data agreement
-(e-VAHAAN / MoP) — until then "all chargers, real-time" is a data problem, not
-a frontend problem. The page shows exactly which source it is using (OCM LIVE /
-LIVE FEED / SNAPSHOT badge) and falls back gracefully when a fetch fails.
-
-### Gap states (verified 2026-08-13)
-
-Some states/UTs show no DC stations because **no open dataset has any**: Bihar
-(OSM: 1 station total, 0 DC; OCM: 0 DC), Chhattisgarh, Sikkim, the northeast
-states, Ladakh, Chandigarh, Andaman & Nicobar, Lakshadweep. Two independent
-sources agree (OCM country pull + OSM/Overpass per-state queries; Delhi sanity
-check returned 152 stations, so the pipeline works). Public DC fast-charging
-infrastructure is genuinely sparse there. `scripts/update-osm-gaps.js`
-re-checks these states against OpenStreetMap and merges any new stations into
-`data/stations.js` — re-run it whenever you want to pick up new mapping.
+OpenChargeMap is community-sourced — the largest open dataset for India but not a complete registry of every
+charger, and its "operational" flag is not live operator telemetry. Some states/UTs (Bihar, NE states, Ladakh,
+Chandigarh, Andaman, Lakshadweep) have **no stations in any open dataset** — verified against OSM on
+2026-08-13 (Bihar: 1 station total, 0 DC; Delhi sanity check: 152). `scripts/update-osm-gaps.js` re-checks
+those states and merges anything new. A truly complete national view needs operator OCPI/OCPP integrations or
+a government data agreement (e-VAHAAN / MoP).

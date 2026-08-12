@@ -1,16 +1,10 @@
 :root {
   --bg: #0b1220;
-  --bg-2: #111a2e;
-  --panel: #16213a;
   --panel-2: #1c2a47;
   --border: #24345a;
   --text: #e6edf7;
   --muted: #8fa3c4;
   --accent: #2dd4bf;
-  --online: #22c55e;
-  --maint: #f59e0b;
-  --offline: #ef4444;
-  font-size: 16px;
 }
 
 * { box-sizing: border-box; }
@@ -22,164 +16,17 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.45;
 }
 
-body {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 100vh;
-  height: 100dvh; /* mobile URL-bar friendly */
-}
-
-.visually-hidden {
-  position: absolute; width: 1px; height: 1px;
-  clip: rect(0 0 0 0); overflow: hidden; white-space: nowrap;
-}
-
-/* ---------- Top bar ---------- */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px;
-  padding-top: calc(10px + env(safe-area-inset-top));
-  background: linear-gradient(180deg, #101b31, var(--bg-2));
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-icon {
-  font-size: 20px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 4px 8px;
-}
-.brand h1 { margin: 0; font-size: 1.05rem; letter-spacing: .2px; }
-
-.status-cluster { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-
-.badge {
-  font-size: .7rem; font-weight: 700; letter-spacing: 1px;
-  padding: 3px 9px; border-radius: 999px;
-  border: 1px solid transparent;
-}
-.badge-snapshot { color: #ffd9a0; background: #3a2c14; border-color: #6b4c1d; }
-.badge-live { color: #b8ffd0; background: #12331f; border-color: #1f6b3c; }
-.badge-ocm { color: #bfd8ff; background: #132a47; border-color: #2a5a94; }
-
-.clock { display: flex; align-items: center; gap: 7px; font-size: .8rem; color: var(--muted); }
-.live-dot {
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--maint);
-  animation: pulse 2s infinite;
-}
-.live-dot.live { background: var(--online); }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-
-/* ---------- Filters ---------- */
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 16px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--border);
-  align-items: center;
-  flex-shrink: 0;
-}
-.search-wrap { flex: 1 1 220px; }
-input[type="search"], select {
-  width: 100%;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: .86rem;
-}
-input[type="search"]:focus, select:focus, .seg:focus-visible, .ghost-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-select { width: auto; min-width: 150px; }
-
-.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.seg {
-  background: var(--panel);
-  color: var(--muted);
-  border: none;
-  padding: 8px 13px;
-  font-size: .82rem;
-  cursor: pointer;
-}
-.seg:hover { color: var(--text); }
-.seg.active { background: var(--accent); color: #06251f; font-weight: 600; }
-.ghost-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 8px;
-  padding: 8px 13px;
-  font-size: .82rem;
-  cursor: pointer;
-}
-.ghost-btn:hover { color: var(--text); border-color: var(--muted); }
-
-/* ---------- Map ---------- */
-.map-shell {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-}
+/* Full-screen map — nothing else on the page */
 #map {
-  position: absolute;
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
-  background: var(--bg-2);
+  height: 100dvh;
+  background: var(--bg);
   z-index: 1;
-}
-
-.map-overlay {
-  position: absolute;
-  z-index: 500;
-  background: rgba(11, 18, 32, 0.92);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: .8rem;
-  backdrop-filter: blur(4px);
-}
-.count { top: 12px; right: 12px; left: auto; color: var(--text); font-weight: 600; }
-.legend {
-  bottom: 30px; left: 12px;
-  display: flex; gap: 12px;
-  color: var(--muted);
-  font-size: .74rem;
-}
-.legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-.legend-dot.online { background: var(--online); }
-.legend-dot.maint { background: var(--maint); }
-.legend-dot.offline { background: var(--offline); }
-
-.map-note {
-  position: absolute;
-  bottom: 8px; left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
-  font-size: .7rem;
-  color: var(--muted);
-  z-index: 500;
-  background: rgba(11, 18, 32, 0.85);
-  border-radius: 6px;
-  padding: 2px 8px;
-  white-space: nowrap;
 }
 
 /* ---------- Popups ---------- */
@@ -199,7 +46,7 @@ select { width: auto; min-width: 150px; }
 .marker-cluster-large { background-color: rgba(239, 68, 68, 0.4); }
 .marker-cluster-large div { background-color: rgba(239, 68, 68, 0.92); color: #fff; font-weight: 700; }
 
-/* ---------- Toast ---------- */
+/* ---------- Toast (transient errors only) ---------- */
 .toast {
   position: fixed;
   bottom: 18px; left: 50%;
@@ -212,28 +59,5 @@ select { width: auto; min-width: 150px; }
   font-size: .84rem;
   z-index: 2000;
   max-width: 90vw;
-}
-
-/* ---------- Footer ---------- */
-.footer {
-  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
-  padding: 6px 16px;
-  font-size: .72rem; color: var(--muted);
-  background: var(--bg-2);
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-/* ---------- Responsive ---------- */
-@media (max-width: 700px) {
-  .controls { flex-direction: column; align-items: stretch; }
-  select { min-width: 100%; }
-  input[type="search"], select, .seg, .ghost-btn { font-size: 16px; } /* prevent iOS focus zoom */
-  .segmented { width: 100%; display: flex; }
-  .seg { flex: 1; white-space: nowrap; padding: 10px 6px; font-size: .8rem; text-align: center; }
-  .legend { bottom: 34px; }
-  .map-note { display: none; }
-  .brand h1 { font-size: .95rem; }
-  .status-cluster { gap: 8px; }
-  .count { font-size: .74rem; }
+  text-align: center;
 }
