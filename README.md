@@ -103,3 +103,14 @@ operator partnerships (OCPI/OCPP integrations) or a government data agreement
 (e-VAHAAN / MoP) — until then "all chargers, real-time" is a data problem, not
 a frontend problem. The page shows exactly which source it is using (OCM LIVE /
 LIVE FEED / SNAPSHOT badge) and falls back gracefully when a fetch fails.
+
+### Gap states (verified 2026-08-13)
+
+Some states/UTs show no DC stations because **no open dataset has any**: Bihar
+(OSM: 1 station total, 0 DC; OCM: 0 DC), Chhattisgarh, Sikkim, the northeast
+states, Ladakh, Chandigarh, Andaman & Nicobar, Lakshadweep. Two independent
+sources agree (OCM country pull + OSM/Overpass per-state queries; Delhi sanity
+check returned 152 stations, so the pipeline works). Public DC fast-charging
+infrastructure is genuinely sparse there. `scripts/update-osm-gaps.js`
+re-checks these states against OpenStreetMap and merges any new stations into
+`data/stations.js` — re-run it whenever you want to pick up new mapping.

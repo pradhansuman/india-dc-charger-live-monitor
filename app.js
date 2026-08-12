@@ -60,7 +60,8 @@
     "jharkhand": "Jharkhand", "madhya pradesh": "Madhya Pradesh", "puducherry": "Puducherry", "telangana": "Telangana",
     "dadra and nagar haveli": "Dadra and Nagar Haveli", "odisha": "Odisha", "assam": "Assam", "chandigarh": "Chandigarh",
     "sikkim": "Sikkim", "mizoram": "Mizoram", "manipur": "Manipur", "meghalaya": "Meghalaya", "nagaland": "Nagaland",
-    "tripura": "Tripura", "arunachal pradesh": "Arunachal Pradesh", "ladakh": "Ladakh", "bihar": "Bihar", "chhattisgarh": "Chhattisgarh"
+    "tripura": "Tripura", "arunachal pradesh": "Arunachal Pradesh", "ladakh": "Ladakh", "bihar": "Bihar", "chhattisgarh": "Chhattisgarh",
+    "india": "" // OCM entries that put the country in the state field
   };
   function normalizeState(s) {
     if (!s) return "";
@@ -106,8 +107,9 @@
   /* ---------- data loading ---------- */
 
   var BANNERS = {
-    snapshot: "<strong>Data source:</strong> bundled OpenChargeMap snapshot of <span id='banner-count'>" + SNAPSHOT.length +
-      "</span> DC-capable stations (fetched 2026-08-13). This page can refresh live from OpenChargeMap — set <code>config.js → ocmApiKey</code>.",
+    snapshot: "<strong>Data source:</strong> OpenChargeMap snapshot — <span id='banner-count'>" + SNAPSHOT.length +
+      "</span> DC-capable stations (fetched 2026-08-13), plus an OpenStreetMap gap-check for under-mapped states " +
+      "(Bihar, Chhattisgarh, Sikkim, NE states, Ladakh, Andaman — none found yet; re-run <code>scripts/update-osm-gaps.js</code> to refresh).",
     ocm: "<strong>Data source:</strong> OpenChargeMap — live community-reported stations (<span id='banner-count'></span> DC-capable). " +
       "Coverage depends on community submissions; it is not guaranteed to include every charger in India.",
     live: "<strong>Data source:</strong> custom live feed (<code>config.js → liveFeedUrl</code>)."
