@@ -23,7 +23,7 @@ bundled in `data/stations.js`).
 | Page | `index.html` | Layout: header + live badge, KPIs, filters, map, table |
 | Styling | `styles.css` | Dark mission-control theme, responsive, focus states |
 | App logic | `app.js` | Filter/sort/render, Leaflet map, auto-refresh timer, feed fallback |
-| Data (bundled) | `data/stations.js` | 61 DC-capable stations exported from the ev-charging-dashboard SQLite DB |
+| Data (bundled) | `data/stations.js` | 1,526 DC-capable stations from OpenChargeMap (India), normalized |
 | Feed plug point | `config.js` | `ocmApiKey` (OpenChargeMap, free) · `liveFeedUrl` (custom JSON feed) · refresh intervals |
 | Nginx config | `nginx.conf` | Function Compute static-host contract (listen 9000, root /code) |
 

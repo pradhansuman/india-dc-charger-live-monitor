@@ -193,7 +193,12 @@
 
   function ocmToStation(p) {
     var addr = p.AddressInfo || {};
-    var dc = (p.Connections || []).filter(function (c) { return c.LevelID === 3; }); // Level 3 = DC fast
+    // DC detection: Level-3 flag OR a DC connector type (OCM imports often mislabel levels)
+    var DC_TYPE_RE = /ccs|chademo|gbt|supercharger|bharat/i;
+    var dc = (p.Connections || []).filter(function (c) {
+      if (c.LevelID === 3) return true;
+      return DC_TYPE_RE.test((c.ConnectionType && c.ConnectionType.Title) || "");
+    });
     var fast = 0, ultra = 0, ccs2 = 0, chademo = 0, gbt = 0, bharatDC = 0;
     var powers = {};
     dc.forEach(function (c) {
