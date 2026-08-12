@@ -37,6 +37,9 @@ Or double-click `index.html` (the dataset is bundled in `data/stations.js`, so `
 - **🧭 Distance + navigation** — every popup shows the straight-line distance from your location (after you tap
   📍) and a **Navigate** button that opens turn-by-turn directions to that charger in Google Maps (driving mode;
   it uses your device location if you haven't tapped 📍).
+- **🔍 More stations on Google Maps** — every popup also links to Google Maps' own EV-charger search centered on
+  that station, so you can see operator-reported stations we don't have in our data (opens the Google Maps app on
+  mobile).
 - **PWA** — add it to your home screen: it installs, boots instantly offline (bundled data + app shell cached),
   and opens full-screen standalone. Map tiles themselves still need internet.
 - **Auto-fresh data** — a scheduled job re-pulls OpenChargeMap on the 1st of each month, regenerates the

@@ -59,6 +59,15 @@ html, body {
 }
 .nav-btn:hover { filter: brightness(1.1); }
 .nav-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.gmap-link {
+  display: block;
+  margin-top: 7px;
+  font-size: .78rem;
+  color: #7dd3fc;
+  text-decoration: none;
+}
+.gmap-link:hover { text-decoration: underline; }
+.gmap-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- Cluster markers (theme-matched) ---------- */
 .marker-cluster-small { background-color: rgba(45, 212, 191, 0.35); }

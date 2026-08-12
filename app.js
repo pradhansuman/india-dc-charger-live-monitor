@@ -322,6 +322,7 @@
         "<div class='pop-data' data-lat='" + s.lat + "' data-lng='" + s.lng + "'>" +
         "<div class='pop-nav'><span class='dist-label'>Distance</span><b class='dist-val'>—</b>" +
         "<a class='nav-btn' href='#' target='_blank' rel='noopener'>Navigate</a></div>" +
+        "<a class='gmap-link' href='https://www.google.com/maps/search/" + encodeURIComponent("EV charging stations") + "/@" + s.lat + "," + s.lng + ",14z' target='_blank' rel='noopener'>More stations on Google Maps ↗</a>" +
         "</div>"
       );
       if (clusterGroup) clusterGroup.addLayer(m);
