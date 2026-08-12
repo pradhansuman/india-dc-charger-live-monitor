@@ -37,6 +37,28 @@ html, body {
 .pop-meta { font-size: .78rem; color: var(--muted); }
 .pop-grid { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: .78rem; margin-top: 6px; }
 .pop-grid b { text-align: right; color: var(--accent); }
+.pop-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.dist-label { font-size: .78rem; color: var(--muted); }
+.dist-val { font-size: .85rem; color: var(--text); margin-right: auto; }
+.nav-btn {
+  background: var(--accent);
+  color: #06251f;
+  font-weight: 700;
+  font-size: .8rem;
+  text-decoration: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.nav-btn:hover { filter: brightness(1.1); }
+.nav-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
 /* ---------- Cluster markers (theme-matched) ---------- */
 .marker-cluster-small { background-color: rgba(45, 212, 191, 0.35); }

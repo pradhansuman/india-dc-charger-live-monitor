@@ -257,6 +257,31 @@
       }
     } catch (e) { clusterGroup = null; }
 
+    // Fill distance + navigation when a popup opens (depends on live user location).
+    map.on("popupopen", function (e) {
+      var el = e.popup.getElement();
+      if (!el) return;
+      var box = el.querySelector(".pop-data");
+      if (!box) return;
+      var lat = parseFloat(box.getAttribute("data-lat"));
+      var lng = parseFloat(box.getAttribute("data-lng"));
+      var dv = el.querySelector(".dist-val");
+      if (dv) {
+        if (userPos && !isNaN(lat) && !isNaN(lng)) {
+          var meters = map.distance([userPos.lat, userPos.lng], [lat, lng]);
+          dv.textContent = meters < 1000 ? Math.round(meters) + " m" : (meters / 1000).toFixed(1) + " km";
+        } else {
+          dv.textContent = "—";
+        }
+      }
+      var nv = el.querySelector(".nav-btn");
+      if (nv && !isNaN(lat) && !isNaN(lng)) {
+        var dest = encodeURIComponent(lat + "," + lng);
+        var origin = userPos ? "origin=" + encodeURIComponent(userPos.lat + "," + userPos.lng) + "&" : "";
+        nv.href = "https://www.google.com/maps/dir/?api=1&" + origin + "destination=" + dest + "&travelmode=driving";
+      }
+    });
+
     var onResize = function () { if (map) map.invalidateSize(); };
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", function () { setTimeout(onResize, 250); });
@@ -293,6 +318,10 @@
         "<span>24×7</span><b>" + (s.is24x7 ? "Yes" : "No") + "</b>" +
         "<span>Status</span><b>" + esc(statusLabel(s.status)) + "</b>" +
         "<span>Updated</span><b>" + fmtAge(s.ts) + "</b>" +
+        "</div>" +
+        "<div class='pop-data' data-lat='" + s.lat + "' data-lng='" + s.lng + "'>" +
+        "<div class='pop-nav'><span class='dist-label'>Distance</span><b class='dist-val'>—</b>" +
+        "<a class='nav-btn' href='#' target='_blank' rel='noopener'>Navigate</a></div>" +
         "</div>"
       );
       if (clusterGroup) clusterGroup.addLayer(m);
@@ -306,6 +335,7 @@
 
   /* ---------- near me ---------- */
 
+  var userPos = null;
   var userLayer = null;
 
   function locateMe() {
@@ -314,6 +344,7 @@
     toast("Locating you…");
     navigator.geolocation.getCurrentPosition(function (pos) {
       var lat = pos.coords.latitude, lng = pos.coords.longitude;
+      userPos = { lat: lat, lng: lng };
       if (userLayer) map.removeLayer(userLayer);
       userLayer = L.layerGroup([
         L.circleMarker([lat, lng], { radius: 8, color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 1, weight: 2 }),
