@@ -366,6 +366,14 @@
         map.addLayer(clusterGroup);
       }
     } catch (e) { clusterGroup = null; }
+
+    // Mobile URL-bar / orientation changes resize the map container;
+    // Leaflet must be told or it renders gray/cut-off areas.
+    var onResize = function () {
+      if (map) map.invalidateSize();
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", function () { setTimeout(onResize, 250); });
   }
 
   function renderMap(rows) {

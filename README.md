@@ -82,7 +82,7 @@ everything else (`power_failure`, `communication_failure`, `temporarily_unavaila
 - **Map-only UI**: everything the user picks in the filters renders as dots/clusters on one full-screen
   map — no table, no KPI cards, no extra panels. Click a dot for station details (operator, connectors,
   power, status).
-- Desktop + mobile responsive: filter bar wraps/stacks on narrow screens, map fills the remaining viewport.
+- Mobile-tuned: dynamic viewport height (100dvh) so the map survives URL-bar show/hide, Leaflet invalidateSize on resize/orientation (no gray tiles), 16px inputs to prevent iOS focus-zoom, safe-area insets for notched phones, single-row nowrap status buttons.
 - **Map clustering**: dense areas (e.g. Kerala, Karnataka) group into numbered clusters at low zoom
   (Leaflet.markercluster, theme-matched colors) and split into individual dots at city level — click a
   cluster to zoom in. Falls back to plain markers if the CDN is blocked.
