@@ -17,13 +17,27 @@ Or double-click `index.html` (the dataset is bundled in `data/stations.js`, so `
 
 | Piece | File | Role |
 |---|---|---|
-| Page | `index.html` | One full-screen map + a transient error toast. Nothing else |
+| Page | `index.html` | One full-screen map + a near-me button + a transient error toast. Nothing else |
 | Styling | `styles.css` | Map fills the viewport (100dvh), dark popups, theme-matched clusters |
-| App logic | `app.js` | Data loading, OCM transform (AC + DC), clustering, popups, auto-refresh |
-| Data (bundled) | `data/stations.js` | 1,948 stations (1,525 DC-capable + 423 AC-only) from OpenChargeMap |
+| App logic | `app.js` | Data loading, OCM transform (AC + DC), clustering, popups, near-me, auto-refresh |
+| Data (bundled) | `data/stations.js` | 1,949 stations (1,526 DC-capable + 423 AC-only) from OpenChargeMap |
 | Feed plug point | `config.js` | `ocmApiKey` (OpenChargeMap, free) · `liveFeedUrl` (custom JSON feed) |
+| PWA | `manifest.webmanifest` + `sw.js` + `icon.svg` | Installable on phones; app shell + data cached for instant/offline boot |
 | Nginx config | `nginx.conf` | Function Compute static-host contract (listen 9000, root /code) |
+| Data refresh | `scripts/refresh-data.js` | Monthly: re-pull OCM → regenerate snapshot → re-check OSM gaps → auto-commit |
 | Gap filler | `scripts/update-osm-gaps.js` | Re-checks under-mapped states via Overpass, merges any DC stations found |
+
+### Features
+
+- **All stations, no filtering** — AC-only, DC fast, ultra-fast, CCS2/CHAdeMO/GBT/Bharat DC; everything with
+  valid India coordinates renders. Click a dot for operator, connector counts, status and **when the status was
+  last reported** (popup shows "Updated: …").
+- **📍 Near me** — the round button (top-right) locates you, draws a 25 km circle and tells you how many chargers
+  are inside it. No filtering of the map — just a view.
+- **PWA** — add it to your home screen: it installs, boots instantly offline (bundled data + app shell cached),
+  and opens full-screen standalone. Map tiles themselves still need internet.
+- **Auto-fresh data** — a scheduled job re-pulls OpenChargeMap on the 1st of each month, regenerates the
+  snapshot, re-checks OSM gap states, and auto-commits (Render redeploys). No manual upkeep.
 
 ### Data flow
 
@@ -50,11 +64,13 @@ auto-refresh: OCM every ocmRefreshMs (15 min) · feeds every refreshMs (30s defa
 ## How to change things
 
 - **Live refresh** — `config.js`: `ocmApiKey` (free key from openchargemap.org → profile → My apps) makes the
-  map pull fresh OpenChargeMap data every `ocmRefreshMs`; `liveFeedUrl` accepts any custom JSON feed.
-- **Data** — `data/stations.js` (regenerate from OCM with `scripts/update-osm-gaps.js` for OSM gaps).
-- **Colors** — CSS variables in `styles.css`; cluster colors in the `.marker-cluster-*` rules.
-- **Deploy** — zip this folder's *contents* (nginx.conf at zip root) for Function Compute nginx, or push to
-  GitHub and link it on Render (Static Site, empty build command, publish directory `.`).
+  map pull fresh OpenChargeMap data every `ocmRefreshMs`; `liveFeedUrl` accepts any custom JSON feed. The key is
+  visible in this public repo — that is normal for OCM (free, rate-limited, client-side by design); rotate it at
+  openchargemap.org if you ever want to.
+- **Data** — `data/stations.js` (regenerate: `node scripts/refresh-data.js`).
+- **Colors / button** — CSS variables in `styles.css`; the near-me button is `.locate-btn`.
+- **Hosting** — **Render is the primary host** (auto-deploys from GitHub on every push); the Function Compute
+  preview is a secondary channel. Both serve the same files.
 
 ## Coverage & quality
 
