@@ -1,7 +1,7 @@
-/* India EV Charger Map — service worker
- * Caches the app shell + bundled data so the map boots offline;
- * map tiles and API calls stay network-first (not cached). */
-var CACHE = "ev-map-v1";
+/* India EV Charger Map — service worker v2
+ * Network-first for the app shell (so updates land immediately after deploy),
+ * cache fallback for offline. Cross-origin (CDNs, tiles, APIs) passes through. */
+var CACHE = "ev-map-v2";
 var APP_SHELL = [
   "./",
   "./index.html",
@@ -34,17 +34,17 @@ self.addEventListener("fetch", function (event) {
   // Only handle same-origin GET requests; let CDNs/tiles pass through untouched.
   if (event.request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // Navigation / app shell: cache-first, network fallback.
+  // Network-first: always try fresh, fall back to cache when offline.
   event.respondWith(
-    caches.match(event.request).then(function (cached) {
-      if (cached) return cached;
-      return fetch(event.request).then(function (response) {
-        if (response && response.ok) {
-          var copy = response.clone();
-          caches.open(CACHE).then(function (cache) { cache.put(event.request, copy); });
-        }
-        return response;
-      }).catch(function () {
+    fetch(event.request).then(function (response) {
+      if (response && response.ok) {
+        var copy = response.clone();
+        caches.open(CACHE).then(function (cache) { cache.put(event.request, copy); });
+      }
+      return response;
+    }).catch(function () {
+      return caches.match(event.request).then(function (cached) {
+        if (cached) return cached;
         return caches.match("./index.html");
       });
     })
