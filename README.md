@@ -91,7 +91,7 @@ everything else (`power_failure`, `communication_failure`, `temporarily_unavaila
   Tamil Nadu) — the filter lists each state exactly once, both for the bundled snapshot and live
   OCM fetches.
 - Loading state: initial render from snapshot is instant; live mode shows a toast while connecting.
-- Empty state: "No DC chargers match your filters" overlay on the map when a filter clears the list.
+- Zero-result state: the count overlay shows "0 of N DC chargers" and the map simply clears — no blocking alert.
 - Error state: failed live fetch → toast + automatic fallback to snapshot data; map CDN blocked →
   message with the filter bar still usable.
 - Interactive states: hover on filters, active/pressed on segmented buttons, focus rings on

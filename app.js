@@ -339,7 +339,6 @@
     byId("result-count").textContent = rows.length === state.data.length
       ? "All " + rows.length + " DC chargers"
       : rows.length + " of " + state.data.length + " DC chargers";
-    byId("empty-state").hidden = rows.length > 0;
     byId("last-updated").textContent = "updated " + fmtTime(state.lastRefresh);
   }
 
