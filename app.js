@@ -41,6 +41,17 @@
 
   function byId(id) { return document.getElementById(id); }
 
+  function fmtAge(ts) {
+    if (!ts) return "—";
+    var d = Date.now() - ts;
+    if (d < 0) d = 0;
+    if (d < 60000) return "just now";
+    if (d < 3600000) return Math.floor(d / 60000) + "m ago";
+    if (d < 86400000) return Math.floor(d / 3600000) + "h ago";
+    if (d < 2592000000) return Math.floor(d / 86400000) + "d ago";
+    return new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  }
+
   function toast(msg) {
     var t = byId("toast");
     if (!t) return;
@@ -281,6 +292,7 @@
         "<span>Power</span><b>" + esc(s.power || "—") + "</b>" +
         "<span>24×7</span><b>" + (s.is24x7 ? "Yes" : "No") + "</b>" +
         "<span>Status</span><b>" + esc(statusLabel(s.status)) + "</b>" +
+        "<span>Updated</span><b>" + fmtAge(s.ts) + "</b>" +
         "</div>"
       );
       if (clusterGroup) clusterGroup.addLayer(m);
@@ -292,9 +304,38 @@
     else if (bounds.length > 1) map.fitBounds(bounds, { padding: [24, 24], maxZoom: 13 });
   }
 
+  /* ---------- near me ---------- */
+
+  var userLayer = null;
+
+  function locateMe() {
+    if (!map) return;
+    if (!navigator.geolocation) { toast("Location is not supported on this device."); return; }
+    toast("Locating you…");
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var lat = pos.coords.latitude, lng = pos.coords.longitude;
+      if (userLayer) map.removeLayer(userLayer);
+      userLayer = L.layerGroup([
+        L.circleMarker([lat, lng], { radius: 8, color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 1, weight: 2 }),
+        L.circle([lat, lng], { radius: 25000, color: "#2dd4bf", weight: 2, dashArray: "6 8", fillColor: "#2dd4bf", fillOpacity: 0.06 })
+      ]).addTo(map);
+      var inRadius = data.filter(function (s) { return map.distance([lat, lng], [s.lat, s.lng]) <= 25000; }).length;
+      map.fitBounds(userLayer.getBounds(), { padding: [30, 30] });
+      toast(inRadius + " charger" + (inRadius === 1 ? "" : "s") + " within 25 km of you.");
+    }, function (err) {
+      var msg = "Location unavailable";
+      if (err && err.code === 1) msg = "Location blocked — allow location access to use this";
+      else if (err && err.code === 3) msg = "Location timed out — try again";
+      toast(msg + ".");
+    }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
+  }
+
   /* ---------- boot ---------- */
 
   function boot() {
+    var lb = byId("locate-btn");
+    if (lb) lb.addEventListener("click", locateMe);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
     initMap();
     loadSnapshot(); // instant paint, then async sources replace it
     if (HAS_FEED) {

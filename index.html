@@ -4,7 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>India EV Charger Map</title>
-<meta name="description" content="Every EV charging station in India — AC and DC, any type — on one map.">
+<meta name="description" content="Every EV charging station in India — AC and DC, any type — on one map. Find chargers near you.">
+<meta name="theme-color" content="#0b1220">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -12,6 +16,7 @@
 </head>
 <body>
 <div id="map" role="application" aria-label="Map of all EV charging stations in India"></div>
+<button id="locate-btn" class="locate-btn" type="button" aria-label="Find chargers near me" title="Find chargers near me">📍</button>
 <div id="toast" class="toast" role="alert" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
