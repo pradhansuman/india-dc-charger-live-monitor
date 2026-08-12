@@ -20,12 +20,13 @@ bundled in `data/stations.js`).
 
 | Piece | File | Role |
 |---|---|---|
-| Page | `index.html` | Layout: header + live badge, KPIs, filters, map, table |
-| Styling | `styles.css` | Dark mission-control theme, responsive, focus states |
-| App logic | `app.js` | Filter/sort/render, Leaflet map, auto-refresh timer, feed fallback |
+| Page | `index.html` | Header + filter bar + full-screen map (nothing else) |
+| Styling | `styles.css` | Dark theme, responsive, map overlays (count / legend / empty state) |
+| App logic | `app.js` | Filter logic, Leaflet map + clustering, popups, auto-refresh, feed fallback |
 | Data (bundled) | `data/stations.js` | 1,526 DC-capable stations from OpenChargeMap (India), normalized |
 | Feed plug point | `config.js` | `ocmApiKey` (OpenChargeMap, free) · `liveFeedUrl` (custom JSON feed) · refresh intervals |
 | Nginx config | `nginx.conf` | Function Compute static-host contract (listen 9000, root /code) |
+| Gap filler | `scripts/update-osm-gaps.js` | Re-checks under-mapped states via Overpass, merges any DC stations found |
 
 ### Data flow
 
@@ -34,12 +35,12 @@ priority: liveFeedUrl  >  ocmApiKey  >  bundled snapshot
 
 liveFeedUrl set? ──yes──▶ fetch(feed) ──▶ normalize ──▶ render (LIVE FEED badge)
      │ no                                                          │
-ocmApiKey set?  ──yes──▶ fetch OCM API (paginated, India) ──▶ keep DC (Level 3) ──▶ render (OCM LIVE badge)
+ocmApiKey set?  ──yes──▶ fetch OCM API (paginated, India) ──▶ keep DC (Level 3 / DC connector type) ──▶ render (OCM LIVE badge)
      │ no / fetch failure (toast + snapshot fallback)              │
      ▼                                                             ▼
 data/stations.js (window.DC_STATIONS) ────────▶ render (SNAPSHOT badge)
         ▼
-filters (search / state / operator / status) → sort → KPI + table + map
+filters (search / state / operator / status) → map markers + clusters
         ▼
 auto-refresh: OCM every ocmRefreshMs (15 min) · feeds every refreshMs (30s default)
 ```
@@ -78,7 +79,10 @@ everything else (`power_failure`, `communication_failure`, `temporarily_unavaila
 
 ## Coverage & quality
 
-- Desktop + mobile responsive (map/table stack below 980px; controls stack below 560px).
+- **Map-only UI**: everything the user picks in the filters renders as dots/clusters on one full-screen
+  map — no table, no KPI cards, no extra panels. Click a dot for station details (operator, connectors,
+  power, status).
+- Desktop + mobile responsive: filter bar wraps/stacks on narrow screens, map fills the remaining viewport.
 - **Map clustering**: dense areas (e.g. Kerala, Karnataka) group into numbered clusters at low zoom
   (Leaflet.markercluster, theme-matched colors) and split into individual dots at city level — click a
   cluster to zoom in. Falls back to plain markers if the CDN is blocked.
@@ -87,11 +91,11 @@ everything else (`power_failure`, `communication_failure`, `temporarily_unavaila
   Tamil Nadu) — the filter lists each state exactly once, both for the bundled snapshot and live
   OCM fetches.
 - Loading state: initial render from snapshot is instant; live mode shows a toast while connecting.
-- Empty state: "No DC chargers match your filters" when a filter clears the list.
-- Error state: failed live fetch → toast + automatic fallback to snapshot data.
-- Status filters: All / Online / Maintenance / Offline; legend on the list panel.
-- Interactive states: hover on rows, sortable column headers, focus rings on inputs/buttons/rows, keyboard reachable (Enter/Space on a row focuses the map marker).
-- Map requires internet (Leaflet CDN + OpenStreetMap tiles); the list works offline and a notice explains when tiles can't load.
+- Empty state: "No DC chargers match your filters" overlay on the map when a filter clears the list.
+- Error state: failed live fetch → toast + automatic fallback to snapshot data; map CDN blocked →
+  message with the filter bar still usable.
+- Interactive states: hover on filters, active/pressed on segmented buttons, focus rings on
+  inputs/buttons/selects (keyboard reachable).
 
 ## Honest limitations
 

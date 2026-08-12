@@ -1,4 +1,4 @@
-/* India DC Charger Live Monitor — view-only dashboard */
+/* India DC Charger Live Monitor — filters + map only */
 (function () {
   "use strict";
 
@@ -22,9 +22,6 @@
     stateFilter: "",
     operatorFilter: "",
     statusFilter: "",
-    sortKey: "name",
-    sortDir: 1,
-    live: false,
     source: "snapshot",
     lastRefresh: null
   };
@@ -45,34 +42,6 @@
 
   function statusLabel(s) {
     return String(s || "unknown").replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-  }
-
-  // Clean dirty state names from OpenChargeMap (trim / case / typos / abbreviations)
-  var STATE_ALIAS = {
-    "tamil nadu": "Tamil Nadu", "tamilnadu": "Tamil Nadu", "tamil nasdu": "Tamil Nadu", "chennai": "Tamil Nadu", "villupuram": "Tamil Nadu",
-    "karnataka": "Karnataka", "karnatak": "Karnataka", "bangalore urban": "Karnataka",
-    "kerala": "Kerala", "keral": "Kerala", "keraka": "Kerala", "lerala": "Kerala",
-    "maharashtra": "Maharashtra", "mahrashtra": "Maharashtra",
-    "uttarakhand": "Uttarakhand", "uttarakhnad": "Uttarakhand", "west bengal": "West Bengal",
-    "uttar pradesh": "Uttar Pradesh", "rajasthan": "Rajasthan", "gujarat": "Gujarat", "haryana": "Haryana",
-    "delhi": "Delhi", "punjab": "Punjab", "goa": "Goa", "gj": "Gujarat", "mh": "Maharashtra", "mp": "Madhya Pradesh", "rj": "Rajasthan",
-    "andhra pradesh": "Andhra Pradesh", "himachal pradesh": "Himachal Pradesh", "jammu and kashmir": "Jammu and Kashmir",
-    "jharkhand": "Jharkhand", "madhya pradesh": "Madhya Pradesh", "puducherry": "Puducherry", "telangana": "Telangana",
-    "dadra and nagar haveli": "Dadra and Nagar Haveli", "odisha": "Odisha", "assam": "Assam", "chandigarh": "Chandigarh",
-    "sikkim": "Sikkim", "mizoram": "Mizoram", "manipur": "Manipur", "meghalaya": "Meghalaya", "nagaland": "Nagaland",
-    "tripura": "Tripura", "arunachal pradesh": "Arunachal Pradesh", "ladakh": "Ladakh", "bihar": "Bihar", "chhattisgarh": "Chhattisgarh",
-    "india": "" // OCM entries that put the country in the state field
-  };
-  function normalizeState(s) {
-    if (!s) return "";
-    var v = String(s).replace(/\s+/g, " ").trim();
-    var k = v.toLowerCase();
-    if (STATE_ALIAS[k]) return STATE_ALIAS[k];
-    if (v === v.toUpperCase() || v === v.toLowerCase())
-      return v.split(" ").map(function (w) {
-        return (w.toLowerCase() === "and" || w.toLowerCase() === "of") ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase();
-      }).join(" ");
-    return v;
   }
 
   function fmtTime(ts) {
@@ -104,15 +73,40 @@
     t._h = setTimeout(function () { t.hidden = true; }, 7000);
   }
 
+  // Clean dirty state names from OpenChargeMap (trim / case / typos / abbreviations)
+  var STATE_ALIAS = {
+    "tamil nadu": "Tamil Nadu", "tamilnadu": "Tamil Nadu", "tamil nasdu": "Tamil Nadu", "chennai": "Tamil Nadu", "villupuram": "Tamil Nadu",
+    "karnataka": "Karnataka", "karnatak": "Karnataka", "bangalore urban": "Karnataka",
+    "kerala": "Kerala", "keral": "Kerala", "keraka": "Kerala", "lerala": "Kerala",
+    "maharashtra": "Maharashtra", "mahrashtra": "Maharashtra",
+    "uttarakhand": "Uttarakhand", "uttarakhnad": "Uttarakhand", "west bengal": "West Bengal",
+    "uttar pradesh": "Uttar Pradesh", "rajasthan": "Rajasthan", "gujarat": "Gujarat", "haryana": "Haryana",
+    "delhi": "Delhi", "punjab": "Punjab", "goa": "Goa", "gj": "Gujarat", "mh": "Maharashtra", "mp": "Madhya Pradesh", "rj": "Rajasthan",
+    "andhra pradesh": "Andhra Pradesh", "himachal pradesh": "Himachal Pradesh", "jammu and kashmir": "Jammu and Kashmir",
+    "jharkhand": "Jharkhand", "madhya pradesh": "Madhya Pradesh", "puducherry": "Puducherry", "telangana": "Telangana",
+    "dadra and nagar haveli": "Dadra and Nagar Haveli", "odisha": "Odisha", "assam": "Assam", "chandigarh": "Chandigarh",
+    "sikkim": "Sikkim", "mizoram": "Mizoram", "manipur": "Manipur", "meghalaya": "Meghalaya", "nagaland": "Nagaland",
+    "tripura": "Tripura", "arunachal pradesh": "Arunachal Pradesh", "ladakh": "Ladakh", "bihar": "Bihar", "chhattisgarh": "Chhattisgarh",
+    "india": "" // OCM entries that put the country in the state field
+  };
+  function normalizeState(s) {
+    if (!s) return "";
+    var v = String(s).replace(/\s+/g, " ").trim();
+    var k = v.toLowerCase();
+    if (STATE_ALIAS[k] !== undefined) return STATE_ALIAS[k];
+    if (v === v.toUpperCase() || v === v.toLowerCase())
+      return v.split(" ").map(function (w) {
+        return (w.toLowerCase() === "and" || w.toLowerCase() === "of") ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase();
+      }).join(" ");
+    return v;
+  }
+
   /* ---------- data loading ---------- */
 
-  var BANNERS = {
-    snapshot: "<strong>Data source:</strong> OpenChargeMap snapshot — <span id='banner-count'>" + SNAPSHOT.length +
-      "</span> DC-capable stations (fetched 2026-08-13), plus an OpenStreetMap gap-check for under-mapped states " +
-      "(Bihar, Chhattisgarh, Sikkim, NE states, Ladakh, Andaman — none found yet; re-run <code>scripts/update-osm-gaps.js</code> to refresh).",
-    ocm: "<strong>Data source:</strong> OpenChargeMap — live community-reported stations (<span id='banner-count'></span> DC-capable). " +
-      "Coverage depends on community submissions; it is not guaranteed to include every charger in India.",
-    live: "<strong>Data source:</strong> custom live feed (<code>config.js → liveFeedUrl</code>)."
+  var FOOTERS = {
+    snapshot: "OpenChargeMap snapshot · " + SNAPSHOT.length + " DC stations (fetched 2026-08-13) · auto-refresh",
+    ocm: "OpenChargeMap live · auto-refresh",
+    live: "Custom live feed · auto-refresh"
   };
 
   function applyData(list, source) {
@@ -120,7 +114,6 @@
     state.data = list;
     state.lastRefresh = Date.now();
     state.source = source;
-    state.live = source !== "snapshot";
 
     var badge = byId("mode-badge");
     if (source === "ocm") { badge.textContent = "OCM LIVE"; badge.className = "badge badge-ocm"; }
@@ -128,14 +121,9 @@
     else { badge.textContent = "SNAPSHOT"; badge.className = "badge badge-snapshot"; }
 
     var dot = byId("live-dot");
-    dot.className = "live-dot" + (state.live ? " live" : "");
+    dot.className = "live-dot" + (source !== "snapshot" ? " live" : "");
     byId("last-updated").textContent = "updated " + fmtTime(state.lastRefresh);
-
-    var banner = byId("source-banner");
-    banner.innerHTML = BANNERS[source];
-    banner.hidden = source === "live";
-    var bc = byId("banner-count");
-    if (bc) bc.textContent = list.length;
+    byId("footer-source").textContent = FOOTERS[source] || "";
 
     populateFilters();
     render();
@@ -143,6 +131,20 @@
 
   function loadSnapshot() {
     applyData(SNAPSHOT.slice(), "snapshot");
+  }
+
+  function normalizeStation(s) {
+    return {
+      name: s.name, operator: s.operator, state: s.state,
+      district: s.district || "", city: s.city,
+      lat: Number(s.lat), lng: Number(s.lng),
+      total: Number(s.total || 0),
+      dcFast: Number(s.dcFast || 0), ultra: Number(s.ultra || 0),
+      ccs2: Number(s.ccs2 || 0), chademo: Number(s.chademo || 0),
+      gbt: Number(s.gbt || 0), bharatDC: Number(s.bharatDC || 0),
+      power: s.power || "", is24x7: !!s.is24x7,
+      status: s.status || "unknown", ts: s.ts || Date.now()
+    };
   }
 
   function loadFeed() {
@@ -163,20 +165,6 @@
         if (!state.data.length) loadSnapshot();
         return false;
       });
-  }
-
-  function normalizeStation(s) {
-    return {
-      name: s.name, operator: s.operator, state: s.state,
-      district: s.district || "", city: s.city,
-      lat: Number(s.lat), lng: Number(s.lng),
-      total: Number(s.total || 0),
-      dcFast: Number(s.dcFast || 0), ultra: Number(s.ultra || 0),
-      ccs2: Number(s.ccs2 || 0), chademo: Number(s.chademo || 0),
-      gbt: Number(s.gbt || 0), bharatDC: Number(s.bharatDC || 0),
-      power: s.power || "", is24x7: !!s.is24x7,
-      status: s.status || "unknown", ts: s.ts || Date.now()
-    };
   }
 
   /* ---------- OpenChargeMap ---------- */
@@ -278,7 +266,7 @@
     else {
       state.lastRefresh = Date.now();
       byId("last-updated").textContent = "updated " + fmtTime(state.lastRefresh);
-      render(); // keep relative timestamps fresh
+      render();
     }
   }
 
@@ -296,15 +284,15 @@
   }
 
   function tick() {
-    byId("countdown").textContent = "refresh in " + countdownLeft + "s";
-    byId("footer-refresh").textContent = Math.round(REFRESH_MS / 1000);
+    var mins = Math.round(REFRESH_MS / 60000);
+    byId("footer-refresh").textContent = "refreshes every " + (mins >= 1 ? mins + " min" : Math.round(REFRESH_MS / 1000) + "s");
   }
 
-  /* ---------- filtering & sorting ---------- */
+  /* ---------- filtering ---------- */
 
   function filtered() {
     var q = state.q.trim().toLowerCase();
-    var out = state.data.filter(function (s) {
+    return state.data.filter(function (s) {
       if (state.stateFilter && s.state !== state.stateFilter) return false;
       if (state.operatorFilter && s.operator !== state.operatorFilter) return false;
       if (state.statusFilter && statusGroup(s.status) !== state.statusFilter) return false;
@@ -314,16 +302,6 @@
       }
       return true;
     });
-    var key = state.sortKey;
-    out.sort(function (a, b) {
-      var av, bv;
-      if (key === "is24x7") { av = a.is24x7 ? 1 : 0; bv = b.is24x7 ? 1 : 0; }
-      else if (key === "status") { av = statusGroup(a.status); bv = statusGroup(b.status); }
-      else { av = a[key]; bv = b[key]; }
-      if (typeof av === "string") return av.localeCompare(bv) * state.sortDir;
-      return (av - bv) * state.sortDir;
-    });
-    return out;
   }
 
   function populateFilters() {
@@ -353,81 +331,23 @@
     else sel.value = keep && values.indexOf(keep) !== -1 ? keep : "";
   }
 
-  /* ---------- rendering ---------- */
+  /* ---------- rendering (map only) ---------- */
 
   function render() {
     var rows = filtered();
-    renderKpis(rows);
-    renderTable(rows);
     renderMap(rows);
-    byId("result-count").textContent = rows.length + " of " + state.data.length + " stations";
+    byId("result-count").textContent = rows.length === state.data.length
+      ? "All " + rows.length + " DC chargers"
+      : rows.length + " of " + state.data.length + " DC chargers";
     byId("empty-state").hidden = rows.length > 0;
-    byId("footer-updated").textContent = fmtTime(state.lastRefresh);
-  }
-
-  function renderKpis(rows) {
-    var total = state.data.length;
-    var connectors = 0, ultra = 0, online = 0, maint = 0, off = 0;
-    var states = {};
-    rows.forEach(function (s) {
-      connectors += s.dcFast + s.ultra;
-      if (s.ultra > 0) ultra += 1;
-      var g = statusGroup(s.status);
-      if (g === "online") online += 1;
-      else if (g === "maintenance") maint += 1;
-      else off += 1;
-      if (s.state) states[s.state] = true;
-    });
-    byId("k-stations").textContent = rows.length;
-    byId("k-connectors").textContent = connectors;
-    byId("k-ultra").textContent = ultra;
-    byId("k-online").textContent = online;
-    byId("k-states").textContent = Object.keys(states).length;
-    byId("k-stations-sub").textContent = "of " + total + " in dataset";
-    byId("k-ultra-sub").textContent = "stations with ultra-fast";
-    byId("k-online-sub").textContent = maint + " maint · " + off + " other";
-    byId("k-states-sub").textContent = "in current view";
-  }
-
-  function renderTable(rows) {
-    var body = byId("table-body");
-    body.innerHTML = "";
-    if (!rows.length) return;
-    var frag = document.createDocumentFragment();
-    rows.forEach(function (s, i) {
-      var tr = document.createElement("tr");
-      tr.tabIndex = 0;
-      tr.setAttribute("role", "button");
-      tr.setAttribute("aria-label", "Show " + s.name + " on map");
-      var g = statusGroup(s.status);
-      tr.innerHTML =
-        "<td><div class='s-name'>" + esc(s.name) + "</div>" +
-        "<div class='s-city'>" + esc(s.district || s.city) + "</div></td>" +
-        "<td>" + esc(s.operator) + "</td>" +
-        "<td><div>" + esc(s.city) + "</div><div class='s-city'>" + esc(s.state) + "</div></td>" +
-        "<td class='num'>" + s.dcFast + "</td>" +
-        "<td class='num'>" + s.ultra + "</td>" +
-        "<td class='num'>" + s.ccs2 + "</td>" +
-        "<td>" + esc(s.power) + "</td>" +
-        "<td>" + (s.is24x7 ? "Yes" : "No") + "</td>" +
-        "<td><span class='status-pill status-" + g + "'>" + esc(statusLabel(s.status)) + "</span></td>";
-      tr.addEventListener("click", function () { focusStation(i, rows); });
-      tr.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); focusStation(i, rows); }
-      });
-      frag.appendChild(tr);
-    });
-    body.appendChild(frag);
-    Array.prototype.forEach.call(document.querySelectorAll("th"), function (th) {
-      th.classList.toggle("sorted", th.dataset.key === state.sortKey);
-    });
+    byId("last-updated").textContent = "updated " + fmtTime(state.lastRefresh);
   }
 
   /* ---------- map ---------- */
 
   function initMap() {
     if (typeof L === "undefined") {
-      byId("map").innerHTML = "<div style='padding:20px;color:#8fa3c4'>Map tiles unavailable (Leaflet CDN blocked or offline). The station list above still works.</div>";
+      byId("map").innerHTML = "<div style='padding:40px;color:#8fa3c4;text-align:center'>Map library failed to load (CDN blocked or offline). Check your internet connection and refresh.</div>";
       byId("map-note").textContent = "";
       return;
     }
@@ -486,17 +406,7 @@
       bounds.push([s.lat, s.lng]);
     });
     if (bounds.length === 1) map.setView(bounds[0], 12);
-    else if (bounds.length > 1) map.fitBounds(bounds, { padding: [28, 28], maxZoom: 14 });
-  }
-
-  function focusStation(idx, rows) {
-    var s = rows[idx];
-    if (!s || !map) return;
-    map.setView([s.lat, s.lng], Math.max(map.getZoom(), 11));
-    var m = markers[idx];
-    if (!m) return;
-    if (clusterGroup) clusterGroup.zoomToShowLayer(m, function () { m.openPopup(); });
-    else m.openPopup();
+    else if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
   }
 
   /* ---------- events ---------- */
@@ -527,15 +437,6 @@
         b.setAttribute("aria-pressed", on ? "true" : "false");
       });
       render();
-    });
-    Array.prototype.forEach.call(document.querySelectorAll("th"), function (th) {
-      th.addEventListener("click", function () {
-        var key = th.dataset.key;
-        if (!key) return;
-        if (state.sortKey === key) state.sortDir *= -1;
-        else { state.sortKey = key; state.sortDir = 1; }
-        render();
-      });
     });
   }
 

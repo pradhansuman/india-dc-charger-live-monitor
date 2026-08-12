@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>India DC Charger Live Monitor</title>
-<meta name="description" content="View-only live monitor of DC fast charging stations across India: map, live status, connectors and operators.">
+<meta name="description" content="Live map of DC fast charging stations across India. Filter by state, operator or status — everything selected shows on the map.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -14,99 +14,50 @@
 <header class="topbar">
   <div class="brand">
     <span class="brand-icon" aria-hidden="true">⚡</span>
-    <div>
-      <h1>India DC Charger Live Monitor</h1>
-      <p class="sub">View-only · DC fast &amp; ultra-fast stations · status from latest available data</p>
-    </div>
+    <h1>India DC Chargers</h1>
   </div>
   <div class="status-cluster">
     <span id="mode-badge" class="badge badge-snapshot" role="status">SNAPSHOT</span>
-    <div class="clock">
-      <span class="live-dot" id="live-dot" aria-hidden="true"></span>
-      <span id="last-updated">—</span>
-    </div>
-    <span id="countdown" class="countdown">refresh in 30s</span>
+    <span class="clock"><span class="live-dot" id="live-dot" aria-hidden="true"></span><span id="last-updated">—</span></span>
   </div>
 </header>
 
-<section class="banner" id="source-banner" role="note">
-  <strong>Data source:</strong> bundled OpenChargeMap snapshot of
-  <span id="banner-count">1526</span> DC-capable stations in India
-  (<a href="https://openchargemap.org" target="_blank" rel="noopener">openchargemap.org</a>,
-  fetched 2026-08-13).
+<section class="controls" aria-label="Filters">
+  <div class="search-wrap">
+    <label class="visually-hidden" for="search">Search stations</label>
+    <input id="search" type="search" placeholder="Search station, operator, city…" autocomplete="off">
+  </div>
+  <label class="visually-hidden" for="state-filter">Filter by state</label>
+  <select id="state-filter"><option value="">All states</option></select>
+  <label class="visually-hidden" for="operator-filter">Filter by operator</label>
+  <select id="operator-filter"><option value="">All operators</option></select>
+  <div class="segmented" role="group" aria-label="Filter by status">
+    <button data-status="" class="seg active" aria-pressed="true">All</button>
+    <button data-status="online" class="seg" aria-pressed="false">Online</button>
+    <button data-status="maintenance" class="seg" aria-pressed="false">Maintenance</button>
+    <button data-status="offline" class="seg" aria-pressed="false">Offline</button>
+  </div>
+  <button id="clear-filters" class="ghost-btn" type="button">Clear</button>
 </section>
 
-<main>
-  <section class="kpis" aria-label="Summary statistics">
-    <article class="kpi"><span class="kpi-label">DC Stations</span><span class="kpi-value" id="k-stations">–</span><span class="kpi-sub" id="k-stations-sub"></span></article>
-    <article class="kpi"><span class="kpi-label">DC Connectors</span><span class="kpi-value" id="k-connectors">–</span><span class="kpi-sub" id="k-connectors-sub">fast + ultra-fast</span></article>
-    <article class="kpi"><span class="kpi-label">Ultra-Fast (≥150 kW)</span><span class="kpi-value" id="k-ultra">–</span><span class="kpi-sub" id="k-ultra-sub"></span></article>
-    <article class="kpi"><span class="kpi-label">Online</span><span class="kpi-value" id="k-online">–</span><span class="kpi-sub" id="k-online-sub"></span></article>
-    <article class="kpi"><span class="kpi-label">States Covered</span><span class="kpi-value" id="k-states">–</span><span class="kpi-sub" id="k-states-sub">of 36 + UTs</span></article>
-  </section>
-
-  <section class="controls" aria-label="Filters">
-    <div class="search-wrap">
-      <label class="visually-hidden" for="search">Search stations</label>
-      <input id="search" type="search" placeholder="Search station, operator, city…" autocomplete="off">
-    </div>
-    <label class="visually-hidden" for="state-filter">Filter by state</label>
-    <select id="state-filter"><option value="">All states</option></select>
-    <label class="visually-hidden" for="operator-filter">Filter by operator</label>
-    <select id="operator-filter"><option value="">All operators</option></select>
-    <div class="segmented" role="group" aria-label="Filter by status">
-      <button data-status="" class="seg active" aria-pressed="true">All</button>
-      <button data-status="online" class="seg" aria-pressed="false">Online</button>
-      <button data-status="maintenance" class="seg" aria-pressed="false">Maintenance</button>
-      <button data-status="offline" class="seg" aria-pressed="false">Offline</button>
-    </div>
-    <button id="clear-filters" class="ghost-btn" type="button">Clear</button>
-  </section>
-
-  <div class="layout">
-    <section class="map-panel" aria-label="Map of DC chargers">
-      <div id="map" role="application" aria-label="Interactive map of DC charging stations"></div>
-      <p class="map-note" id="map-note">Map needs an internet connection (OpenStreetMap tiles). List below works offline.</p>
-    </section>
-
-    <section class="list-panel" aria-label="Station list">
-      <div class="list-head">
-        <h2>Stations <span class="muted" id="result-count" aria-live="polite"></span></h2>
-        <span class="legend">
-          <span class="legend-dot online"></span> Online
-          <span class="legend-dot maint"></span> Maintenance
-          <span class="legend-dot offline"></span> Offline
-        </span>
-      </div>
-      <div class="table-wrap">
-        <table id="stations-table">
-          <thead>
-            <tr>
-              <th data-key="name">Station</th>
-              <th data-key="operator">Operator</th>
-              <th data-key="city">City / State</th>
-              <th data-key="dcFast" class="num">DC Fast</th>
-              <th data-key="ultra" class="num">Ultra</th>
-              <th data-key="ccs2" class="num">CCS2</th>
-              <th data-key="power">Power</th>
-              <th data-key="is24x7">24×7</th>
-              <th data-key="status">Status</th>
-            </tr>
-          </thead>
-          <tbody id="table-body"></tbody>
-        </table>
-      </div>
-      <div id="empty-state" class="empty-state" hidden>
-        <p><strong>No DC chargers match your filters.</strong></p>
-        <p>Try clearing the search or switching the status filter.</p>
-      </div>
-    </section>
+<main class="map-shell">
+  <div id="map" role="application" aria-label="Map of DC charging stations in India"></div>
+  <div id="result-count" class="map-overlay count" aria-live="polite"></div>
+  <div class="map-overlay legend" aria-hidden="true">
+    <span><i class="legend-dot online"></i>Online</span>
+    <span><i class="legend-dot maint"></i>Maintenance</span>
+    <span><i class="legend-dot offline"></i>Offline</span>
   </div>
+  <div id="empty-state" class="map-overlay empty" hidden>
+    <strong>No DC chargers match your filters.</strong>
+    <span>Try clearing the search or switching the status filter.</span>
+  </div>
+  <p class="map-note" id="map-note">Map tiles need an internet connection (OpenStreetMap).</p>
 </main>
 
 <footer class="footer">
-  <span id="footer-source">Snapshot data · last updated <span id="footer-updated">—</span></span>
-  <span>Auto-refresh every <span id="footer-refresh">30</span>s</span>
+  <span id="footer-source"></span>
+  <span id="footer-refresh"></span>
 </footer>
 
 <div id="toast" class="toast" role="alert" hidden></div>
