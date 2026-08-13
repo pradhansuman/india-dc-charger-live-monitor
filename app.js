@@ -285,6 +285,13 @@
       if (gv && !isNaN(lat) && !isNaN(lng)) {
         gv.href = gmapFallbackUrl(lat, lng);
       }
+      var pv = el.querySelector(".nav-btn-plan");
+      if (pv && box && !isNaN(lat) && !isNaN(lng)) {
+        pv.addEventListener("click", function () {
+          map.closePopup();
+          openTripPanel(lat, lng, box.getAttribute("data-name") || "");
+        });
+      }
     });
 
     var onResize = function () { if (map) map.invalidateSize(); };
@@ -324,10 +331,11 @@
         "<span>Status</span><b>" + esc(statusLabel(s.status)) + "</b>" +
         "<span>Updated</span><b>" + fmtAge(s.ts) + "</b>" +
         "</div>" +
-        "<div class='pop-data' data-lat='" + s.lat + "' data-lng='" + s.lng + "'>" +
+        "<div class='pop-data' data-lat='" + s.lat + "' data-lng='" + s.lng + "' data-name='" + esc(s.name) + "'>" +
         "<div class='pop-nav'><span class='dist-label'>Distance</span><b class='dist-val'>—</b>" +
         "<button type='button' class='nav-btn'>Navigate</button>" +
-        "<a class='nav-btn nav-btn-google' href='#' target='_blank' rel='noopener'>Google Maps</a></div>" +
+        "<a class='nav-btn nav-btn-google' href='#' target='_blank' rel='noopener'>Google Maps</a>" +
+        "<button type='button' class='nav-btn nav-btn-plan'>⚡ Plan trip</button></div>" +
         "<a class='gmap-link' href='https://www.google.com/maps/search/" + encodeURIComponent("EV charging stations") + "/@" + s.lat + "," + s.lng + ",14z' target='_blank' rel='noopener'>More stations on Google Maps ↗</a>" +
         "</div>"
       );
@@ -433,11 +441,176 @@
     }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
   }
 
+  /* ---------- EV trip planner (range-aware charging stops) ---------- */
+
+  var tripDest = null;
+
+  function haversineKm(a, b) {
+    var R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+    var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+
+  function cumulativeKm(coords) {
+    var cum = [0], i;
+    for (i = 1; i < coords.length; i++) cum.push(cum[i - 1] + haversineKm(coords[i - 1], coords[i]));
+    return cum;
+  }
+
+  function routeIndexAt(cum, km) {
+    var lo = 0, hi = cum.length - 1, mid;
+    while (lo < hi) { mid = (lo + hi) >> 1; if (cum[mid] < km) lo = mid + 1; else hi = mid; }
+    return lo;
+  }
+
+  function findStationNear(pt, stations, used, maxKm) {
+    var best = null, bestD = maxKm + 1, i, d;
+    for (i = 0; i < stations.length; i++) {
+      if (used.has(i)) continue;
+      d = haversineKm(pt, stations[i]);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return bestD <= maxKm ? { index: best, station: stations[best], distKm: bestD } : null;
+  }
+
+  function findChargingStops(coords, opts, stations) {
+    var fullRange = Math.max(20, Math.min(2000, opts.fullRangeKm || 400));
+    var startSoc = Math.max(5, Math.min(100, opts.startSoc || 80));
+    var legKm = fullRange * 0.25;                 // stop every ~25% battery
+    var usableKm = fullRange * startSoc / 100 - fullRange * 0.10; // 10% reserve
+    var cum = cumulativeKm(coords);
+    var totalKm = cum[cum.length - 1];
+    var result = { stops: [], totalKm: totalKm, usableKm: usableKm, direct: totalKm <= usableKm };
+    if (usableKm <= 0) { result.error = "Not enough battery to travel (range after reserve: 0 km)."; return result; }
+    if (result.direct) return result;
+    var used = new Set(), curIdx = 0, prevKm = 0, guard = 0, radii = [4, 8, 15, 30, 50];
+    while (guard++ < 25) {
+      var remaining = totalKm - cum[curIdx];
+      if (remaining <= legKm) break;               // can reach destination from here
+      var step = Math.min(legKm, usableKm);        // assume charged to startSoc at each stop
+      if (step < 20) {
+        result.error = "Not enough range to reach the next charger — charge more before leaving or pick a closer destination.";
+        result.stops = [];
+        return result;
+      }
+      var tIdx = routeIndexAt(cum, cum[curIdx] + step);
+      var pt = coords[tIdx], found = null, r;
+      for (r = 0; r < radii.length && !found; r++) found = findStationNear(pt, stations, used, radii[r]);
+      var kmFromOrigin = cum[tIdx];
+      var legDist = kmFromOrigin - prevKm;
+      var socAt = Math.max(0, Math.round(startSoc - legDist / fullRange * 100));
+      if (found) {
+        used.add(found.index);
+        result.stops.push({ station: found.station, distKm: found.distKm, kmFromOrigin: kmFromOrigin, legDist: legDist, socAtArrival: socAt, note: found.distKm > 15 ? "long gap — charge as much as possible" : "" });
+      } else {
+        result.stops.push({ station: null, kmFromOrigin: kmFromOrigin, legDist: legDist, socAtArrival: socAt, note: "no charger within 50 km — charge longer at the previous stop" });
+      }
+      prevKm = kmFromOrigin;
+      curIdx = tIdx;
+    }
+    return result;
+  }
+
+  function openTripPanel(lat, lng, name) {
+    tripDest = { lat: lat, lng: lng };
+    byId("trip-dest").textContent = "To: " + (name || "Selected charger");
+    byId("trip-stops").innerHTML = "";
+    byId("trip-gmaps").innerHTML = "";
+    byId("trip-panel").hidden = false;
+  }
+
+  function closeTripPanel() { byId("trip-panel").hidden = true; }
+
+  function gmapsWithStopsUrl(origin, dest, plan) {
+    var stops = plan.stops.filter(function (s) { return s.station; }).slice(0, 9);
+    var wp = stops.map(function (s) { return s.station.lat + "," + s.station.lng; }).join("|");
+    return "https://www.google.com/maps/dir/?api=1&origin=" + encodeURIComponent(origin.lat + "," + origin.lng) +
+      (wp ? "&waypoints=" + encodeURIComponent(wp) : "") +
+      "&destination=" + encodeURIComponent(dest.lat + "," + dest.lng) + "&travelmode=driving";
+  }
+
+  function renderTripResult(origin, dest, plan) {
+    var waypoints = [L.latLng(origin.lat, origin.lng)];
+    plan.stops.forEach(function (s) { if (s.station) waypoints.push(L.latLng(s.station.lat, s.station.lng)); });
+    waypoints.push(L.latLng(dest.lat, dest.lng));
+    if (routeControl) map.removeControl(routeControl);
+    routeControl = L.Routing.control({
+      waypoints: waypoints,
+      router: L.Routing.osrmv1({ serviceUrl: "https://router.project-osrm.org/route/v1" }),
+      routeWhileDragging: false,
+      showAlternatives: false,
+      fitSelectedRoutes: true,
+      collapsible: true,
+      show: true
+    }).addTo(map);
+    routeControl.on("routingerror", function () { toast("Multi-stop routing failed — open the Google Maps link instead."); });
+
+    var html = "";
+    if (plan.error) {
+      html = "<div class='trip-err'>" + esc(plan.error) + "</div>";
+    } else if (plan.direct) {
+      html = "<div class='trip-ok'>No charging stops needed — your range covers the trip (" + Math.round(plan.usableKm) + " km usable vs " + Math.round(plan.totalKm) + " km trip).</div>";
+    } else {
+      html = "<div class='trip-ok'>" + plan.stops.length + " charging stop" + (plan.stops.length === 1 ? "" : "s") + " suggested (every ~25% battery).</div>";
+      plan.stops.forEach(function (s, i) {
+        if (!s.station) {
+          html += "<div class='trip-stop trip-stop-warn'><b>Stop " + (i + 1) + "</b> — " + esc(s.note) + " (at " + Math.round(s.kmFromOrigin) + " km)</div>";
+          return;
+        }
+        html += "<div class='trip-stop'><b>Stop " + (i + 1) + ": " + esc(s.station.name) + "</b> · " + esc(s.station.operator) +
+          "<br><span>at " + Math.round(s.kmFromOrigin) + " km · arrive ~" + s.socAtArrival + "% SoC · " + (s.station.dcFast + s.station.ultra) + " DC</span>" +
+          (s.note ? " <em>" + esc(s.note) + "</em>" : "") + "</div>";
+      });
+    }
+    byId("trip-stops").innerHTML = html;
+    byId("trip-gmaps").innerHTML =
+      "<a class='trip-gmap-link' href='" + (plan.stops.length ? gmapsWithStopsUrl(origin, dest, plan) : gmapFallbackUrl(dest.lat, dest.lng)) + "' target='_blank' rel='noopener'>Open route in Google Maps</a>";
+  }
+
+  function planTrip() {
+    if (!tripDest) { toast("Pick a destination charger first."); return; }
+    var soc = parseFloat(byId("trip-soc").value);
+    var fullRange = parseFloat(byId("trip-range").value);
+    if (isNaN(soc) || isNaN(fullRange)) { toast("Enter your battery % and range."); return; }
+    soc = Math.max(5, Math.min(100, soc));
+    fullRange = Math.max(20, Math.min(2000, fullRange));
+    var dest = tripDest;
+    var runPlan = function (origin) {
+      var url = "https://router.project-osrm.org/route/v1/driving/" + origin.lng + "," + origin.lat + ";" + dest.lng + "," + dest.lat + "?overview=full&geometries=geojson&steps=false";
+      toast("Planning route with charging stops…");
+      fetch(url, { cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then(function (res) {
+          var route = res.routes && res.routes[0];
+          if (!route || !route.geometry || !route.geometry.coordinates || !route.geometry.coordinates.length) throw new Error("no route");
+          var coords = route.geometry.coordinates.map(function (c) { return { lat: c[1], lng: c[0] }; });
+          var plan = findChargingStops(coords, { fullRangeKm: fullRange, startSoc: soc }, data);
+          renderTripResult(origin, dest, plan);
+        })
+        .catch(function (err) {
+          toast("Route planning failed (" + err.message + ") — open Google Maps instead.");
+          window.open(gmapFallbackUrl(dest.lat, dest.lng), "_blank");
+        });
+    };
+    if (userPos) { runPlan(userPos); return; }
+    toast("Locating you…");
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      runPlan(userPos);
+    }, function () { toast("Location unavailable — can't plan a trip."); }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
+  }
+
   /* ---------- boot ---------- */
 
   function boot() {
     var lb = byId("locate-btn");
     if (lb) lb.addEventListener("click", locateMe);
+    var tc = byId("trip-close");
+    if (tc) tc.addEventListener("click", closeTripPanel);
+    var tp = byId("trip-plan");
+    if (tp) tp.addEventListener("click", planTrip);
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
     initMap();
     loadSnapshot(); // instant paint, then async sources replace it

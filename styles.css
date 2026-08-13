@@ -70,6 +70,108 @@ html, body {
   padding: 6px 13px;
 }
 .nav-btn-google:hover { background: #1c2a47; filter: none; }
+.nav-btn-plan {
+  background: transparent;
+  color: #fbbf24;
+  border: 1px solid #7c5a12;
+  padding: 6px 13px;
+}
+.nav-btn-plan:hover { background: #2a230f; filter: none; }
+
+/* ---------- EV trip planner panel ---------- */
+.trip-panel {
+  position: fixed;
+  z-index: 3000;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  max-width: 430px;
+  margin: 0 auto;
+}
+.trip-panel-inner {
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.trip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.trip-close {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+.trip-close:hover { color: var(--text); }
+.trip-dest { font-size: .85rem; color: var(--accent); margin-bottom: 8px; word-break: break-word; }
+.trip-label {
+  display: block;
+  font-size: .78rem;
+  color: var(--muted);
+  margin: 8px 0 3px;
+}
+.trip-panel input {
+  width: 100%;
+  font-size: 16px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #0b1220;
+  color: var(--text);
+}
+.trip-panel input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.trip-note { font-size: .74rem; color: var(--muted); margin: 8px 0; }
+.trip-plan-btn {
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  background: var(--accent);
+  color: #06251f;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px;
+  cursor: pointer;
+}
+.trip-plan-btn:hover { filter: brightness(1.1); }
+.trip-plan-btn:active { transform: scale(0.99); }
+.trip-stops { margin-top: 10px; }
+.trip-stop {
+  background: #101a2e;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  font-size: .8rem;
+}
+.trip-stop span { color: var(--muted); }
+.trip-stop em { color: #fbbf24; font-style: normal; font-size: .74rem; }
+.trip-stop-warn { border-color: #7c5a12; }
+.trip-ok { font-size: .82rem; color: #6ee7b7; margin: 8px 0 4px; }
+.trip-err { font-size: .82rem; color: #fca5a5; margin: 8px 0 4px; }
+.trip-gmaps { margin-top: 8px; }
+.trip-gmap-link {
+  display: block;
+  text-align: center;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #7dd3fc;
+  border: 1px solid #2f4a78;
+  border-radius: 10px;
+  padding: 9px;
+  text-decoration: none;
+}
+.trip-gmap-link:hover { background: #1c2a47; }
 .gmap-link {
   display: block;
   margin-top: 7px;

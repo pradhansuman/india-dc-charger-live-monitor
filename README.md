@@ -36,8 +36,14 @@ Or double-click `index.html` (the dataset is bundled in `data/stations.js`, so `
   are inside it. No filtering of the map — just a view.
 - **🧭 Distance + navigation** — every popup shows the straight-line distance from your location (after you tap
   📍) and a **Navigate** button that draws the driving route **inside the map** (OSRM, free) with distance, ETA
-  and turn-by-turn instructions in a collapsible panel. If routing fails or you haven't allowed location, it
-  falls back to opening Google Maps directions.
+  and turn-by-turn instructions in a collapsible panel. A **Google Maps** button next to it hands off to voice
+  navigation. If routing fails or location is denied, it falls back to Google Maps directions.
+- **⚡ Plan EV trip** — the amber button in a popup opens a planner: enter your current battery (SoC %) and the
+  car's range on full charge (km). It plans the driving route and suggests **charging stops every ~25% battery**
+  (10% reserve), picking real chargers from our dataset near the route. Results: the multi-stop route is drawn on
+  the map with turn-by-turn, and each stop shows station, leg distance, and estimated SoC on arrival. A
+  "Open route in Google Maps" link hands the full stop-by-stop trip to Google Maps (up to 9 stops). If the
+  battery can't reach any charger, it says so honestly.
 - **🔍 More stations on Google Maps** — every popup also links to Google Maps' own EV-charger search centered on
   that station, so you can see operator-reported stations we don't have in our data (opens the Google Maps app on
   mobile).

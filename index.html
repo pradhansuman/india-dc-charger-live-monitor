@@ -18,6 +18,24 @@
 <body>
 <div id="map" role="application" aria-label="Map of all EV charging stations in India"></div>
 <button id="locate-btn" class="locate-btn" type="button" aria-label="Find chargers near me" title="Find chargers near me">📍</button>
+
+<div id="trip-panel" class="trip-panel" hidden>
+  <div class="trip-panel-inner">
+    <div class="trip-head">
+      <b>Plan EV trip</b>
+      <button id="trip-close" type="button" class="trip-close" aria-label="Close">×</button>
+    </div>
+    <div id="trip-dest" class="trip-dest"></div>
+    <label class="trip-label" for="trip-soc">Current battery (SoC %)</label>
+    <input id="trip-soc" type="number" inputmode="numeric" min="5" max="100" step="1" value="80">
+    <label class="trip-label" for="trip-range">Range on full charge (km)</label>
+    <input id="trip-range" type="number" inputmode="numeric" min="20" max="2000" step="5" value="400">
+    <p class="trip-note">Charging stops are suggested every ~25% battery, with a 10% reserve.</p>
+    <button id="trip-plan" type="button" class="trip-plan-btn">Plan route</button>
+    <div id="trip-stops" class="trip-stops"></div>
+    <div id="trip-gmaps" class="trip-gmaps"></div>
+  </div>
+</div>
 <div id="toast" class="toast" role="alert" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
