@@ -352,7 +352,8 @@
         L.circle([lat, lng], { radius: 25000, color: "#2dd4bf", weight: 2, dashArray: "6 8", fillColor: "#2dd4bf", fillOpacity: 0.06 })
       ]).addTo(map);
       var inRadius = data.filter(function (s) { return map.distance([lat, lng], [s.lat, s.lng]) <= 25000; }).length;
-      map.fitBounds(userLayer.getBounds(), { padding: [30, 30] });
+      // Zoom into the user's current location (street level). The 25 km circle stays for context when zoomed out.
+      map.setView([lat, lng], 15, { animate: true });
       toast(inRadius + " charger" + (inRadius === 1 ? "" : "s") + " within 25 km of you.");
     }, function (err) {
       var msg = "Location unavailable";
