@@ -274,12 +274,16 @@
           dv.textContent = "—";
         }
       }
-      var nv = el.querySelector(".nav-btn");
+      var nv = el.querySelector(".nav-btn:not(.nav-btn-google)");
       if (nv && !isNaN(lat) && !isNaN(lng)) {
         nv.addEventListener("click", function () {
           map.closePopup();
           startRoute(lat, lng);
         });
+      }
+      var gv = el.querySelector(".nav-btn-google");
+      if (gv && !isNaN(lat) && !isNaN(lng)) {
+        gv.href = gmapFallbackUrl(lat, lng);
       }
     });
 
@@ -322,7 +326,8 @@
         "</div>" +
         "<div class='pop-data' data-lat='" + s.lat + "' data-lng='" + s.lng + "'>" +
         "<div class='pop-nav'><span class='dist-label'>Distance</span><b class='dist-val'>—</b>" +
-        "<button type='button' class='nav-btn'>Navigate</button></div>" +
+        "<button type='button' class='nav-btn'>Navigate</button>" +
+        "<a class='nav-btn nav-btn-google' href='#' target='_blank' rel='noopener'>Google Maps</a></div>" +
         "<a class='gmap-link' href='https://www.google.com/maps/search/" + encodeURIComponent("EV charging stations") + "/@" + s.lat + "," + s.lng + ",14z' target='_blank' rel='noopener'>More stations on Google Maps ↗</a>" +
         "</div>"
       );

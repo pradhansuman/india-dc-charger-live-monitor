@@ -40,7 +40,8 @@ html, body {
 .pop-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border);
@@ -62,6 +63,13 @@ html, body {
 }
 .nav-btn:hover { filter: brightness(1.1); }
 .nav-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.nav-btn-google {
+  background: transparent;
+  color: #7dd3fc;
+  border: 1px solid #2f4a78;
+  padding: 6px 13px;
+}
+.nav-btn-google:hover { background: #1c2a47; filter: none; }
 .gmap-link {
   display: block;
   margin-top: 7px;
