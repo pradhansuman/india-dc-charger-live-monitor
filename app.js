@@ -345,10 +345,10 @@
     if (dogIconCached) return dogIconCached;
     dogIconCached = L.divIcon({
       html: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="30" height="30" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))">' +
-        '<ellipse cx="15" cy="16" rx="10" ry="15" fill="#8d5a2b" transform="rotate(16 15 16)"/>' +
-        '<ellipse cx="49" cy="16" rx="10" ry="15" fill="#8d5a2b" transform="rotate(-16 49 16)"/>' +
-        '<ellipse cx="32" cy="33" rx="21" ry="18" fill="#c08552"/>' +
-        '<ellipse cx="32" cy="40" rx="11" ry="8" fill="#e8c9a0"/>' +
+        '<ellipse cx="15" cy="16" rx="10" ry="15" fill="#922b21" transform="rotate(16 15 16)"/>' +
+        '<ellipse cx="49" cy="16" rx="10" ry="15" fill="#922b21" transform="rotate(-16 49 16)"/>' +
+        '<ellipse cx="32" cy="33" rx="21" ry="18" fill="#e74c3c"/>' +
+        '<ellipse cx="32" cy="40" rx="11" ry="8" fill="#f5b7b1"/>' +
         '<ellipse cx="22.5" cy="28.5" rx="3.4" ry="4" fill="#26221f"/>' +
         '<ellipse cx="41.5" cy="28.5" rx="3.4" ry="4" fill="#26221f"/>' +
         '<circle cx="21.3" cy="26.9" r="1.2" fill="#fff"/>' +
