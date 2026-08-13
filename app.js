@@ -338,6 +338,30 @@
 
   var userPos = null;
   var userLayer = null;
+  var dogIconCached = null;
+
+  // Cute dog marker for the user's location (inline SVG — no external image dependency).
+  function dogIcon() {
+    if (dogIconCached) return dogIconCached;
+    dogIconCached = L.divIcon({
+      html: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="38" height="38" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))">' +
+        '<ellipse cx="15" cy="16" rx="10" ry="15" fill="#8d5a2b" transform="rotate(16 15 16)"/>' +
+        '<ellipse cx="49" cy="16" rx="10" ry="15" fill="#8d5a2b" transform="rotate(-16 49 16)"/>' +
+        '<ellipse cx="32" cy="33" rx="21" ry="18" fill="#c08552"/>' +
+        '<ellipse cx="32" cy="40" rx="11" ry="8" fill="#e8c9a0"/>' +
+        '<ellipse cx="22.5" cy="28.5" rx="3.4" ry="4" fill="#26221f"/>' +
+        '<ellipse cx="41.5" cy="28.5" rx="3.4" ry="4" fill="#26221f"/>' +
+        '<circle cx="21.3" cy="26.9" r="1.2" fill="#fff"/>' +
+        '<circle cx="40.3" cy="26.9" r="1.2" fill="#fff"/>' +
+        '<ellipse cx="32" cy="39.5" rx="4.6" ry="3.4" fill="#26221f"/>' +
+        '<path d="M27.5 42.5 Q32 48.5 36.5 42.5 L35.4 49.5 Q32 52.5 28.6 49.5 Z" fill="#f2848f"/>' +
+        '</svg>',
+      className: "",
+      iconSize: [38, 38],
+      iconAnchor: [19, 36]
+    });
+    return dogIconCached;
+  }
 
   function locateMe() {
     if (!map) return;
@@ -348,7 +372,7 @@
       userPos = { lat: lat, lng: lng };
       if (userLayer) map.removeLayer(userLayer);
       userLayer = L.layerGroup([
-        L.circleMarker([lat, lng], { radius: 8, color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 1, weight: 2 }),
+        L.marker([lat, lng], { icon: dogIcon(), zIndexOffset: 1000 }),
         L.circle([lat, lng], { radius: 25000, color: "#2dd4bf", weight: 2, dashArray: "6 8", fillColor: "#2dd4bf", fillOpacity: 0.06 })
       ]).addTo(map);
       var inRadius = data.filter(function (s) { return map.distance([lat, lng], [s.lat, s.lng]) <= 25000; }).length;
