@@ -287,6 +287,15 @@
       }
     });
 
+    // Pick-any-destination: tap when armed, or long-press (contextmenu) anywhere.
+    map.on("click", function (e) {
+      if (pickArmed) setDestination(e.latlng);
+    });
+    map.on("contextmenu", function (e) {
+      if (e.originalEvent) e.originalEvent.preventDefault();
+      setDestination(e.latlng);
+    });
+
     var onResize = function () { if (map) map.invalidateSize(); };
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", function () { setTimeout(onResize, 250); });
@@ -568,11 +577,46 @@
     }, function () { toast("Location unavailable — can't plan a trip."); }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
   }
 
+  /* ---------- pick any destination ---------- */
+
+  var pickArmed = false;
+  var destMarker = null;
+
+  function setPickArmed(on) {
+    pickArmed = on;
+    var b = byId("pick-btn");
+    if (b) b.classList.toggle("armed", on);
+  }
+
+  function togglePick() {
+    setPickArmed(!pickArmed);
+    toast(pickArmed ? "Tap anywhere on the map to set the destination." : "Destination picking off.");
+  }
+
+  function setDestination(latlng) {
+    setPickArmed(false);
+    if (destMarker) map.removeLayer(destMarker);
+    destMarker = L.marker([latlng.lat, latlng.lng]).addTo(map);
+    openTripPanel(latlng.lat, latlng.lng, "Picked location");
+    toast("Destination set — enter battery details and plan.");
+    // Best-effort reverse geocode for a nicer name (non-blocking).
+    try {
+      fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat=" + latlng.lat + "&lon=" + latlng.lng, { headers: { "Accept": "application/json" }, cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function (d) {
+          if (d && d.display_name) byId("trip-dest").textContent = "To: " + d.display_name.split(",").slice(0, 3).join(",");
+        })
+        .catch(function () {});
+    } catch (e) {}
+  }
+
   /* ---------- boot ---------- */
 
   function boot() {
     var lb = byId("locate-btn");
     if (lb) lb.addEventListener("click", locateMe);
+    var pb = byId("pick-btn");
+    if (pb) pb.addEventListener("click", togglePick);
     var tc = byId("trip-close");
     if (tc) tc.addEventListener("click", closeTripPanel);
     var tp = byId("trip-plan");
