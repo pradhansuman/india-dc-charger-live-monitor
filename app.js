@@ -344,7 +344,7 @@
   function dogIcon() {
     if (dogIconCached) return dogIconCached;
     dogIconCached = L.divIcon({
-      html: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="26" height="26" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))">' +
+      html: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="30" height="30" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))">' +
         '<ellipse cx="15" cy="16" rx="10" ry="15" fill="#8d5a2b" transform="rotate(16 15 16)"/>' +
         '<ellipse cx="49" cy="16" rx="10" ry="15" fill="#8d5a2b" transform="rotate(-16 49 16)"/>' +
         '<ellipse cx="32" cy="33" rx="21" ry="18" fill="#c08552"/>' +
@@ -357,8 +357,8 @@
         '<path d="M27.5 42.5 Q32 48.5 36.5 42.5 L35.4 49.5 Q32 52.5 28.6 49.5 Z" fill="#f2848f"/>' +
         '</svg>',
       className: "",
-      iconSize: [26, 26],
-      iconAnchor: [13, 24]
+      iconSize: [30, 30],
+      iconAnchor: [15, 28]
     });
     return dogIconCached;
   }
