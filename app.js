@@ -446,18 +446,19 @@
   function findChargingStops(coords, opts, stations) {
     var fullRange = Math.max(20, Math.min(2000, opts.fullRangeKm || 400));
     var startSoc = Math.max(5, Math.min(100, opts.startSoc || 80));
-    var legKm = fullRange * 0.8;                  // drive until battery hits ~20%
-    var firstLegKm = fullRange * (startSoc - 20) / 100; // first leg from current SoC, arrive at 20%
     var cum = cumulativeKm(coords);
     var totalKm = cum[cum.length - 1];
-    var usableKm = firstLegKm;
-    var result = { stops: [], totalKm: totalKm, usableKm: usableKm, direct: totalKm <= usableKm };
-    if (usableKm <= 0) { result.error = "Not enough battery to reach any charger (battery drops below 20% almost immediately)."; return result; }
+    // Every leg uses exactly (leave % − 20 %) of the range, arriving with ~20% left.
+    var firstLegKm = fullRange * (startSoc - 20) / 100;
+    var legKm = fullRange * (Math.max(startSoc, 80) - 20) / 100;
+    var result = { stops: [], totalKm: totalKm, usableKm: firstLegKm, direct: totalKm <= firstLegKm, firstLegKm: firstLegKm, legKm: legKm };
+    if (firstLegKm <= 0) { result.error = "Not enough battery to reach any charger (battery drops below 20% almost immediately)."; return result; }
     if (result.direct) return result;
     var used = new Set(), curIdx = 0, prevKm = 0, guard = 0, radii = [4, 8, 15, 30, 50];
     while (guard++ < 25) {
       var isFirst = curIdx === 0;
-      var allowed = isFirst ? firstLegKm : legKm;
+      var leaveSoc = isFirst ? startSoc : Math.max(startSoc, 80); // assume you charge to at least 80% at stops
+      var allowed = fullRange * (leaveSoc - 20) / 100;
       var remaining = totalKm - cum[curIdx];
       if (remaining <= allowed) break;            // can reach destination from here
       var step = Math.min(allowed, remaining - 0.5);
@@ -471,7 +472,6 @@
       for (r = 0; r < radii.length && !found; r++) found = findStationNear(pt, stations, used, radii[r]);
       var kmFromOrigin = cum[tIdx];
       var legDist = kmFromOrigin - prevKm;
-      var leaveSoc = isFirst ? startSoc : Math.max(startSoc, 80); // assume you charge to at least 80% at stops
       var socAt = Math.max(0, Math.round(leaveSoc - legDist / fullRange * 100));
       if (found) {
         used.add(found.index);
@@ -516,7 +516,7 @@
     } else if (plan.direct) {
       html = "<div class='trip-ok'>No charging stops needed — your range covers the trip (" + Math.round(plan.usableKm) + " km usable vs " + Math.round(plan.totalKm) + " km trip).</div>";
     } else {
-      html = "<div class='trip-ok'>" + plan.stops.length + " charging stop" + (plan.stops.length === 1 ? "" : "s") + " suggested (battery kept above ~20%).</div>";
+      html = "<div class='trip-ok'>" + plan.stops.length + " charging stop" + (plan.stops.length === 1 ? "" : "s") + " suggested — each leg ≈ " + Math.round(plan.legKm) + " km (arrive ~20%).</div>";
       plan.stops.forEach(function (s, i) {
         if (!s.station) {
           html += "<div class='trip-stop trip-stop-warn'><b>Stop " + (i + 1) + "</b> — " + esc(s.note) + " (at " + Math.round(s.kmFromOrigin) + " km)</div>";
