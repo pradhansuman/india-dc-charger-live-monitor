@@ -35,8 +35,9 @@ Or double-click `index.html` (the dataset is bundled in `data/stations.js`, so `
 - **📍 Near me** — the round button (top-right) locates you, draws a 25 km circle and tells you how many chargers
   are inside it. No filtering of the map — just a view.
 - **🧭 Distance + navigation** — every popup shows the straight-line distance from your location (after you tap
-  📍) and a **Navigate** button that opens turn-by-turn directions to that charger in Google Maps (driving mode;
-  it uses your device location if you haven't tapped 📍).
+  📍) and a **Navigate** button that draws the driving route **inside the map** (OSRM, free) with distance, ETA
+  and turn-by-turn instructions in a collapsible panel. If routing fails or you haven't allowed location, it
+  falls back to opening Google Maps directions.
 - **🔍 More stations on Google Maps** — every popup also links to Google Maps' own EV-charger search centered on
   that station, so you can see operator-reported stations we don't have in our data (opens the Google Maps app on
   mobile).

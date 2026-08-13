@@ -276,9 +276,10 @@
       }
       var nv = el.querySelector(".nav-btn");
       if (nv && !isNaN(lat) && !isNaN(lng)) {
-        var dest = encodeURIComponent(lat + "," + lng);
-        var origin = userPos ? "origin=" + encodeURIComponent(userPos.lat + "," + userPos.lng) + "&" : "";
-        nv.href = "https://www.google.com/maps/dir/?api=1&" + origin + "destination=" + dest + "&travelmode=driving";
+        nv.addEventListener("click", function () {
+          map.closePopup();
+          startRoute(lat, lng);
+        });
       }
     });
 
@@ -321,7 +322,7 @@
         "</div>" +
         "<div class='pop-data' data-lat='" + s.lat + "' data-lng='" + s.lng + "'>" +
         "<div class='pop-nav'><span class='dist-label'>Distance</span><b class='dist-val'>—</b>" +
-        "<a class='nav-btn' href='#' target='_blank' rel='noopener'>Navigate</a></div>" +
+        "<button type='button' class='nav-btn'>Navigate</button></div>" +
         "<a class='gmap-link' href='https://www.google.com/maps/search/" + encodeURIComponent("EV charging stations") + "/@" + s.lat + "," + s.lng + ",14z' target='_blank' rel='noopener'>More stations on Google Maps ↗</a>" +
         "</div>"
       );
@@ -339,6 +340,7 @@
   var userPos = null;
   var userLayer = null;
   var userIconCached = null;
+  var routeControl = null;
 
   // Red car marker for the user's location (inline SVG — no external image dependency).
   function userIcon() {
@@ -382,6 +384,47 @@
       if (err && err.code === 1) msg = "Location blocked — allow location access to use this";
       else if (err && err.code === 3) msg = "Location timed out — try again";
       toast(msg + ".");
+    }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
+  }
+
+  /* ---------- in-map navigation (OSRM) ---------- */
+
+  function gmapFallbackUrl(lat, lng) {
+    var dest = encodeURIComponent(lat + "," + lng);
+    var origin = userPos ? "origin=" + encodeURIComponent(userPos.lat + "," + userPos.lng) + "&" : "";
+    return "https://www.google.com/maps/dir/?api=1&" + origin + "destination=" + dest + "&travelmode=driving";
+  }
+
+  function startRoute(destLat, destLng) {
+    if (!map || typeof L.Routing === "undefined" || typeof L.Routing.osrmv1 !== "function") {
+      toast("Routing engine unavailable — opening Google Maps instead.");
+      window.open(gmapFallbackUrl(destLat, destLng), "_blank");
+      return;
+    }
+    var run = function (origin) {
+      if (routeControl) map.removeControl(routeControl);
+      routeControl = L.Routing.control({
+        waypoints: [origin, L.latLng(destLat, destLng)],
+        router: L.Routing.osrmv1({ serviceUrl: "https://router.project-osrm.org/route/v1" }),
+        routeWhileDragging: false,
+        showAlternatives: false,
+        fitSelectedRoutes: true,
+        collapsible: true,
+        show: true
+      }).addTo(map);
+      routeControl.on("routingerror", function () {
+        toast("Routing failed — opening Google Maps instead.");
+        window.open(gmapFallbackUrl(destLat, destLng), "_blank");
+      });
+    };
+    if (userPos) { run(L.latLng(userPos.lat, userPos.lng)); return; }
+    toast("Locating you…");
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      run(L.latLng(userPos.lat, userPos.lng));
+    }, function () {
+      toast("Location unavailable — opening Google Maps instead.");
+      window.open(gmapFallbackUrl(destLat, destLng), "_blank");
     }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
   }
 
