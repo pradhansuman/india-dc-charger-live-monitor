@@ -39,8 +39,9 @@ Or double-click `index.html` (the dataset is bundled in `data/stations.js`, so `
   The old full-screen in-map route panel was removed.
 - **⚡ Plan EV trip** — enter your current battery (SoC %) and the car's range on full charge (km). It plans
   the driving route with **charging stops so you arrive with ~20% battery left** (each leg uses ~80% of the
-  range), picking real chargers from our dataset near the route. The multi-stop route is drawn on the map; each
-  stop shows station, leg distance, and estimated SoC on arrival. An "Open route in Google Maps" link hands the
+  range), picking real chargers from our dataset near the route. The multi-stop route is drawn on the map as a
+  plain line (no full-screen panel — the turn-by-turn list is not shown in-app); the trip panel lists every stop
+  with station, leg distance, and estimated SoC on arrival, and an "Open route in Google Maps" link hands the
   full stop-by-stop trip to Google Maps (up to 9 stops). Example: 100% SoC, 400 km range, 1200 km trip → 3 stops
   at ~320/640/960 km. If the battery can't reach any charger, it says so honestly.
 - **🔍 More stations on Google Maps** — every popup also links to Google Maps' own EV-charger search centered on

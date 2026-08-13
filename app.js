@@ -345,7 +345,7 @@
   var userPos = null;
   var userLayer = null;
   var userIconCached = null;
-  var routeControl = null;
+  var tripRouteLayer = null;
 
   // Red car marker for the user's location (inline SVG — no external image dependency).
   function userIcon() {
@@ -494,23 +494,12 @@
       "&destination=" + encodeURIComponent(dest.lat + "," + dest.lng) + "&travelmode=driving";
   }
 
-  function renderTripResult(origin, dest, plan) {
-    var waypoints = [L.latLng(origin.lat, origin.lng)];
-    plan.stops.forEach(function (s) { if (s.station) waypoints.push(L.latLng(s.station.lat, s.station.lng)); });
-    waypoints.push(L.latLng(dest.lat, dest.lng));
-    if (routeControl) map.removeControl(routeControl);
-    routeControl = L.Routing.control({
-      waypoints: waypoints,
-      router: L.Routing.osrmv1({ serviceUrl: "https://router.project-osrm.org/route/v1" }),
-      routeWhileDragging: false,
-      showAlternatives: false,
-      fitSelectedRoutes: true,
-      collapsible: true,
-      show: true
-    }).addTo(map);
-    // Keep the instruction panel out of the way on phones — start it collapsed.
-    if (window.innerWidth < 768 && routeControl.collapse) routeControl.collapse();
-    routeControl.on("routingerror", function () { toast("Multi-stop routing failed — open the Google Maps link instead."); });
+  function renderTripResult(origin, dest, plan, geometry) {
+    // Draw the full multi-stop route as a plain polyline — no full-screen panel.
+    if (tripRouteLayer) map.removeLayer(tripRouteLayer);
+    var latlngs = geometry.map(function (c) { return [c[1], c[0]]; });
+    tripRouteLayer = L.polyline(latlngs, { color: "#2dd4bf", weight: 5, opacity: 0.85 }).addTo(map);
+    map.fitBounds(tripRouteLayer.getBounds(), { padding: [30, 30] });
 
     var html = "";
     if (plan.error) {
@@ -534,6 +523,18 @@
       "<a class='trip-gmap-link' href='" + (plan.stops.length ? gmapsWithStopsUrl(origin, dest, plan) : gmapFallbackUrl(dest.lat, dest.lng)) + "' target='_blank' rel='noopener'>Open route in Google Maps</a>";
   }
 
+  function fetchMultiLeg(origin, dest, plan) {
+    var pts = [origin].concat(plan.stops.filter(function (s) { return s.station; }).map(function (s) { return s.station; }), [dest]);
+    var url = "https://router.project-osrm.org/route/v1/driving/" + pts.map(function (p) { return p.lng + "," + p.lat; }).join(";") + "?overview=full&geometries=geojson&steps=false";
+    return fetch(url, { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (res) {
+        var route = res.routes && res.routes[0];
+        if (!route || !route.geometry || !route.geometry.coordinates) throw new Error("no multi-leg route");
+        return route.geometry.coordinates;
+      });
+  }
+
   function planTrip() {
     if (!tripDest) { toast("Pick a destination charger first."); return; }
     var soc = parseFloat(byId("trip-soc").value);
@@ -552,7 +553,7 @@
           if (!route || !route.geometry || !route.geometry.coordinates || !route.geometry.coordinates.length) throw new Error("no route");
           var coords = route.geometry.coordinates.map(function (c) { return { lat: c[1], lng: c[0] }; });
           var plan = findChargingStops(coords, { fullRangeKm: fullRange, startSoc: soc }, data);
-          renderTripResult(origin, dest, plan);
+          return fetchMultiLeg(origin, dest, plan).then(function (g) { renderTripResult(origin, dest, plan, g); });
         })
         .catch(function (err) {
           toast("Route planning failed (" + err.message + ") — open Google Maps instead.");
