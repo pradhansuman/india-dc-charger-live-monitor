@@ -274,13 +274,6 @@
           dv.textContent = "—";
         }
       }
-      var nv = el.querySelector(".nav-btn:not(.nav-btn-google)");
-      if (nv && !isNaN(lat) && !isNaN(lng)) {
-        nv.addEventListener("click", function () {
-          map.closePopup();
-          startRoute(lat, lng);
-        });
-      }
       var gv = el.querySelector(".nav-btn-google");
       if (gv && !isNaN(lat) && !isNaN(lng)) {
         gv.href = gmapFallbackUrl(lat, lng);
@@ -333,7 +326,6 @@
         "</div>" +
         "<div class='pop-data' data-lat='" + s.lat + "' data-lng='" + s.lng + "' data-name='" + esc(s.name) + "'>" +
         "<div class='pop-nav'><span class='dist-label'>Distance</span><b class='dist-val'>—</b>" +
-        "<button type='button' class='nav-btn'>Navigate</button>" +
         "<a class='nav-btn nav-btn-google' href='#' target='_blank' rel='noopener'>Google Maps</a>" +
         "<button type='button' class='nav-btn nav-btn-plan'>⚡ Plan trip</button></div>" +
         "<a class='gmap-link' href='https://www.google.com/maps/search/" + encodeURIComponent("EV charging stations") + "/@" + s.lat + "," + s.lng + ",14z' target='_blank' rel='noopener'>More stations on Google Maps ↗</a>" +
@@ -400,45 +392,12 @@
     }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
   }
 
-  /* ---------- in-map navigation (OSRM) ---------- */
+  /* ---------- Google Maps fallback link ---------- */
 
   function gmapFallbackUrl(lat, lng) {
     var dest = encodeURIComponent(lat + "," + lng);
     var origin = userPos ? "origin=" + encodeURIComponent(userPos.lat + "," + userPos.lng) + "&" : "";
     return "https://www.google.com/maps/dir/?api=1&" + origin + "destination=" + dest + "&travelmode=driving";
-  }
-
-  function startRoute(destLat, destLng) {
-    if (!map || typeof L.Routing === "undefined" || typeof L.Routing.osrmv1 !== "function") {
-      toast("Routing engine unavailable — opening Google Maps instead.");
-      window.open(gmapFallbackUrl(destLat, destLng), "_blank");
-      return;
-    }
-    var run = function (origin) {
-      if (routeControl) map.removeControl(routeControl);
-      routeControl = L.Routing.control({
-        waypoints: [origin, L.latLng(destLat, destLng)],
-        router: L.Routing.osrmv1({ serviceUrl: "https://router.project-osrm.org/route/v1" }),
-        routeWhileDragging: false,
-        showAlternatives: false,
-        fitSelectedRoutes: true,
-        collapsible: true,
-        show: true
-      }).addTo(map);
-      routeControl.on("routingerror", function () {
-        toast("Routing failed — opening Google Maps instead.");
-        window.open(gmapFallbackUrl(destLat, destLng), "_blank");
-      });
-    };
-    if (userPos) { run(L.latLng(userPos.lat, userPos.lng)); return; }
-    toast("Locating you…");
-    navigator.geolocation.getCurrentPosition(function (pos) {
-      userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      run(L.latLng(userPos.lat, userPos.lng));
-    }, function () {
-      toast("Location unavailable — opening Google Maps instead.");
-      window.open(gmapFallbackUrl(destLat, destLng), "_blank");
-    }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
   }
 
   /* ---------- EV trip planner (range-aware charging stops) ---------- */
@@ -478,18 +437,21 @@
   function findChargingStops(coords, opts, stations) {
     var fullRange = Math.max(20, Math.min(2000, opts.fullRangeKm || 400));
     var startSoc = Math.max(5, Math.min(100, opts.startSoc || 80));
-    var legKm = fullRange * 0.25;                 // stop every ~25% battery
-    var usableKm = fullRange * startSoc / 100 - fullRange * 0.10; // 10% reserve
+    var legKm = fullRange * 0.8;                  // drive until battery hits ~20%
+    var firstLegKm = fullRange * (startSoc - 20) / 100; // first leg from current SoC, arrive at 20%
     var cum = cumulativeKm(coords);
     var totalKm = cum[cum.length - 1];
+    var usableKm = firstLegKm;
     var result = { stops: [], totalKm: totalKm, usableKm: usableKm, direct: totalKm <= usableKm };
-    if (usableKm <= 0) { result.error = "Not enough battery to travel (range after reserve: 0 km)."; return result; }
+    if (usableKm <= 0) { result.error = "Not enough battery to reach any charger (battery drops below 20% almost immediately)."; return result; }
     if (result.direct) return result;
     var used = new Set(), curIdx = 0, prevKm = 0, guard = 0, radii = [4, 8, 15, 30, 50];
     while (guard++ < 25) {
+      var isFirst = curIdx === 0;
+      var allowed = isFirst ? firstLegKm : legKm;
       var remaining = totalKm - cum[curIdx];
-      if (remaining <= legKm) break;               // can reach destination from here
-      var step = Math.min(legKm, usableKm);        // assume charged to startSoc at each stop
+      if (remaining <= allowed) break;            // can reach destination from here
+      var step = Math.min(allowed, remaining - 0.5);
       if (step < 20) {
         result.error = "Not enough range to reach the next charger — charge more before leaving or pick a closer destination.";
         result.stops = [];
@@ -500,7 +462,8 @@
       for (r = 0; r < radii.length && !found; r++) found = findStationNear(pt, stations, used, radii[r]);
       var kmFromOrigin = cum[tIdx];
       var legDist = kmFromOrigin - prevKm;
-      var socAt = Math.max(0, Math.round(startSoc - legDist / fullRange * 100));
+      var leaveSoc = isFirst ? startSoc : Math.max(startSoc, 80); // assume you charge to at least 80% at stops
+      var socAt = Math.max(0, Math.round(leaveSoc - legDist / fullRange * 100));
       if (found) {
         used.add(found.index);
         result.stops.push({ station: found.station, distKm: found.distKm, kmFromOrigin: kmFromOrigin, legDist: legDist, socAtArrival: socAt, note: found.distKm > 15 ? "long gap — charge as much as possible" : "" });
@@ -545,6 +508,8 @@
       collapsible: true,
       show: true
     }).addTo(map);
+    // Keep the instruction panel out of the way on phones — start it collapsed.
+    if (window.innerWidth < 768 && routeControl.collapse) routeControl.collapse();
     routeControl.on("routingerror", function () { toast("Multi-stop routing failed — open the Google Maps link instead."); });
 
     var html = "";
@@ -553,7 +518,7 @@
     } else if (plan.direct) {
       html = "<div class='trip-ok'>No charging stops needed — your range covers the trip (" + Math.round(plan.usableKm) + " km usable vs " + Math.round(plan.totalKm) + " km trip).</div>";
     } else {
-      html = "<div class='trip-ok'>" + plan.stops.length + " charging stop" + (plan.stops.length === 1 ? "" : "s") + " suggested (every ~25% battery).</div>";
+      html = "<div class='trip-ok'>" + plan.stops.length + " charging stop" + (plan.stops.length === 1 ? "" : "s") + " suggested (battery kept above ~20%).</div>";
       plan.stops.forEach(function (s, i) {
         if (!s.station) {
           html += "<div class='trip-stop trip-stop-warn'><b>Stop " + (i + 1) + "</b> — " + esc(s.note) + " (at " + Math.round(s.kmFromOrigin) + " km)</div>";
